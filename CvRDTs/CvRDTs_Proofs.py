@@ -5,7 +5,7 @@ from z3 import *
 from CvRDTs.CvRDT import T, CvRDT
 
 
-class CvRDTProofs:
+class CvRDT_Proofs:
     '''CvRDTProofs provides the proofs that all CvRDTs must satisfy.'''
     
     def compare_correct(self, vars_for_2_instances: List[str], x: CvRDT[T], y: CvRDT[T]) -> BoolRef:

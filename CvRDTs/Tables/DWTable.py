@@ -1,36 +1,35 @@
 
 from z3 import *
 from abc import abstractmethod
-from typing import Callable, Dict, Generic, Tuple, TypeVar
+from typing import Callable, Dict, Tuple
 
 from CvRDTs.CvRDT import CvRDT
+from CvRDTs.Tables.Element import Element
+from CvRDTs.Tables.PK import PK
+from CvRDTs.Tables.Table import Table
 from CvRDTs.Time.Time import Time
 from CvRDTs.Tables.DWFlags import DWFlags
 from CvRDTs.Tables.Flags_Constants import Status, Version
 from PROOF_PARAMETERS import BEFORE_FUNCTION_TIME_TYPE, MAX_TABLES_SIZE_TO_PROVE
 
 
-PK = TypeVar('PK')  # PK is a generic type repreenting the Primary Key of the table, and of the Values themselves
-V = TypeVar('V', bound='CvRDT')  # V is a generic type of the elements of the table, and they are bound to CvRDT
 
 
-class DWTable(CvRDT['DWTable[PK,V]'], Generic[PK, V]):
+class DWTable(Table):
     '''DWTable provides a default implementation of methods of the CvRDT.
-       DWTable extends CvRDT. And CvRDT accepts a generic type T, which we here bind to DWTable[PK,V].'''
+       DWTable extends CvRDT. And CvRDT accepts a generic type T, which we here bind to DWTable.'''
     
-    def __init__(self, elements: Dict[PK, Tuple[DWFlags, V]], before: Callable[[Time, Time], bool]): 
-        self.elements = elements  # elements is a dict with PK as key and (DWFlags, V) as value
-        self.before = before  # before is a function (Time, Time) => Bool
+    def __init__(self, elements: Dict[PK, Tuple[DWFlags, Element]], before: Callable[[Time, Time], bool]): 
+        super().__init__(elements, before)
 
     @abstractmethod
-    def copy(self, newElements: Dict[PK, Tuple[DWFlags, V]]) -> 'DWTable':
+    def copy(self, newElements: Dict[PK, Tuple[DWFlags, Element]]) -> 'DWTable':
         pass
 
     @abstractmethod
     def getNumFKs(self) -> int:
         pass
     
-
     def reachable(self) -> BoolRef : 
         '''for all elements in elements.values() check if they respect the conditions'''
         return And(*[
@@ -127,25 +126,25 @@ class DWTable(CvRDT['DWTable[PK,V]'], Generic[PK, V]):
 
 
     @staticmethod
-    def getArgs(extra_id: str, v: V):
+    def getArgs(extra_id: str, elem: Element):
         '''return symbolic all different variables for 3 different instances of a given concrete table, and also list of those variables to be used by Z3.'''
 
         vars_for_1_instance, vars_for_2_instances, vars_for_3_instances = [], [], []
 
         elements1, elements2, elements3 = {}, {}, {}
         for i in range(MAX_TABLES_SIZE_TO_PROVE):  
-            v1_args, v2_args, v3_args3, v_vars_for_1_instance, v_args_for_2_instances, v_args_for_3_instances = v.getArgs(extra_id+str(i))
-            v1, v2, v3 = v(*v1_args), v(*v2_args), v(*v3_args3)
+            elem1_args, elem2_args, elem3_args3, elem_vars_for_1_instance, elem_args_for_2_instances, elem_args_for_3_instances = elem.getArgs(str(i)+extra_id)
+            elem1, elem2, elem3 = elem(*elem1_args), elem(*elem2_args), elem(*elem3_args3)
             
-            flag1_args, flag2_args, flag3_args, flag_vars_for_1_instance, flag_args_for_2_instances, flag_args_for_3_instances = DWFlags.getArgs(extra_id+str(i), v.number_of_FKs)
+            flag1_args, flag2_args, flag3_args, flag_vars_for_1_instance, flag_args_for_2_instances, flag_args_for_3_instances = DWFlags.getArgs(str(i)+extra_id, elem.number_of_FKs)
             
-            elements1[v1.getPK()] = (DWFlags(*flag1_args), v1)
-            elements2[v2.getPK()] = (DWFlags(*flag2_args), v2)
-            elements3[v3.getPK()] = (DWFlags(*flag3_args), v3)
+            elements1[elem1.getPK()] = (DWFlags(*flag1_args), elem1)
+            elements2[elem2.getPK()] = (DWFlags(*flag2_args), elem2)
+            elements3[elem3.getPK()] = (DWFlags(*flag3_args), elem3)
 
-            vars_for_1_instance += v_vars_for_1_instance + flag_vars_for_1_instance
-            vars_for_2_instances += v_args_for_2_instances + flag_args_for_2_instances
-            vars_for_3_instances += v_args_for_3_instances + flag_args_for_3_instances
+            vars_for_1_instance += elem_vars_for_1_instance + flag_vars_for_1_instance
+            vars_for_2_instances += elem_args_for_2_instances + flag_args_for_2_instances
+            vars_for_3_instances += elem_args_for_3_instances + flag_args_for_3_instances
         
 
         before_args1, before_args2, before_args3, before_args_forAll_1, before_args_forAll_2, before_args_forAll_3 = BEFORE_FUNCTION_TIME_TYPE.getBeforeFunArgs(extra_id+"art_T")

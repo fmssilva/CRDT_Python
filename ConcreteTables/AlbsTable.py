@@ -10,8 +10,8 @@ from ConcreteTables.Alb import Alb, AlbPK
 
 
 
-class AlbsTable(DWTable[AlbPK, Alb]):
-    '''AlbsTable extends DWTable. DWTable accepts a generic type PK and V, which we here bind to AlbPK and Alb.'''
+class AlbsTable(DWTable):
+    '''AlbsTable extends DWTable.'''
 
     def __init__(self, elements: Dict[AlbPK, Tuple[DWFlags, Alb]], before: Callable[[Time, Time], bool],):
         super().__init__(elements, before)

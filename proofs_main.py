@@ -5,7 +5,7 @@ from z3 import *
 from ConcreteTables.Alb import Alb, AlbPK
 from ConcreteTables.Alb_FK_System import Alb_FK_System
 from ConcreteTables.AlbsTable import AlbsTable
-from CvRDTs.CvRDTs_Proofs import CvRDTProofs
+from CvRDTs.CvRDTs_Proofs import CvRDT_Proofs
 
 from CvRDTs.Counters.GCounter import GCounter
 from CvRDTs.Ref_Integrity_Proofs import Ref_Integrity_Proofs
@@ -14,6 +14,7 @@ from CvRDTs.Registers.LWWRegister import LWWRegister
 from CvRDTs.Tables.DWFlags import DWFlags
 from ConcreteTables.Art import Art, ArtPK
 from ConcreteTables.ArtsTable import ArtsTable
+from CvRDTs.Time.VersionVector import VersionVector
 
 
 #############################################################
@@ -24,26 +25,35 @@ from ConcreteTables.ArtsTable import ArtsTable
 #############       CHOOSE PROOF TO RUN        ##############
 '''Choose: a) The CvRDT to prove;   b) The type of proof to run.'''
 
-CvRDT_TO_PROVE = 2
-CvRDT_options = {1:LWWRegister, 2: GCounter, 3: LamportClock,
-                 11: DWFlags, 12: ArtsTable,
-                 21: Art, 22: ArtsTable, 
-                 33: Alb, 34: AlbsTable, 35: Alb_FK_System}
+CvRDT_TO_PROVE = 53
+CvRDT_options = {   
+        # Time:
+            1: LamportClock, 2: VersionVector,
+        # Counters:
+            11: GCounter, 
+        # Registers:
+            21: LWWRegister,
+        # Tables:
+            31: DWFlags, 
+            41: Art, 42: ArtsTable,
+            51: Alb, 52: AlbsTable, 53: Alb_FK_System
+}
+
 
 PROOF_TO_RUN = 1
-proofs_options = {  # CvRDTProofs:
-                    1: "ALL", 
-                    2: "compare_correct", 
-                    3: "is_a_CvRDT",  # This proof is too big for complex cases. So we will only run it if you choose it specifically. In "ALL" option we'll run instead the parts of it separately, enumerated below.
-                        #  is_a_CvRDT proof divided in parts to run with "ALL" option 
-                        4: "compatible_commutes", 
-                        5: "merge_idempotent", 6: "merge_commutative", 
-                        7: "merge_associative", 8: "merge_reachable", 
-                        9: "merge_compatible",
-                    # Ref_Integrity_Proofs:
-                    10: "generic_referential_integrity",
-                    11: "ref_integrity_holds_for_concurrent_deletions"
-                    }
+proofs_options = {  
+        # CvRDTProofs:
+            1: "ALL", 
+            2: "compare_correct", 
+            3: "is_a_CvRDT",  # This proof is too big for complex cases. So we will only run it if you choose it specifically. In "ALL" option we'll run instead the parts of it separately, enumerated below.
+                #  is_a_CvRDT proof divided in parts to run with "ALL" option 
+                4: "compatible_commutes", 
+                5: "merge_idempotent", 6: "merge_commutative", 
+                7: "merge_associative", 8: "merge_reachable", 
+                9: "merge_compatible",
+        # Ref_Integrity_Proofs:
+            10: "generic_referential_integrity"
+}
 
 #############################################################
 ################       RUN THE SCRIPT        ################
@@ -94,8 +104,8 @@ if __name__ == "__main__":
     proof_to_run = proofs_options[PROOF_TO_RUN]
     
     print("\n\n\n\n\n\nStarting CvRDT proofs for ", CvRDT_to_prove.__name__)
-    proofs = CvRDTProofs()
-    arg_for_getArgs = ["main",50] if CvRDT_to_prove == DWFlags else ["main"]
+    proofs = CvRDT_Proofs()
+    arg_for_getArgs = ["main",50] if (CvRDT_to_prove == DWFlags or CvRDT_to_prove == VersionVector )else ["main"]
     instance1_args, instance2_args, instance3_args, vars_for_1_instance, vars_for_2_instances, vars_for_3_instances = CvRDT_to_prove.getArgs(*arg_for_getArgs)
     check_all_z3_variables_have_different_names(vars_for_3_instances)
 

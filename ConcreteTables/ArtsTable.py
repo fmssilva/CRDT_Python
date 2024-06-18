@@ -9,8 +9,8 @@ from CvRDTs.Tables.DWTable import DWTable
 from ConcreteTables.Art import Art, ArtPK
 
 
-class ArtsTable(DWTable[ArtPK, Art]):
-    '''ArtsTable extends DWTable. DWTable accepts a generic type PK and V, which we here bind to ArtPK and Art.'''
+class ArtsTable(DWTable):
+    '''ArtsTable extends DWTable.'''
     
     def __init__(self, elements: Dict[ArtPK, Tuple[DWFlags, Art]], before: Callable[[Time, Time], bool]):
         super().__init__(elements, before)
