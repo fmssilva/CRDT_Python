@@ -1,0 +1,41 @@
+# IDE files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.sln
+*.swp
+
+# Build artifacts
+/bin/
+/build/
+/dist/
+/out/
+/target/
+*.exe
+*.dll
+*.so
+*.dylib
+*.jar
+*.war
+*.ear
+*.class
+*.o
+*.obj
+*.a
+*.lib
+*.pdb
+*.ipch/
+*.pch
+*.gch
+*.ilk
+*.exp
+*.manifest
+*.cmake
+CMakeFiles/
+Makefile
+cmake_install.cmake
+CMakeCache.txt
+
+# Virtual environment
+venv/
