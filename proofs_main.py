@@ -7,10 +7,10 @@ from CvRDTs.Proofs_CvRDTs import Proofs_CvRDT
 from CvRDTs.Proofs_Ref_Integrity import Proofs_Ref_Integrity
 
 # import CvRDTs
+from CvRDTs.Counters.GCounter import GCounter
 from CvRDTs.Time.LamportClock import LamportClock
 from CvRDTs.Time.VersionVector import VersionVector
 from CvRDTs.Registers.LWWRegister import LWWRegister
-from CvRDTs.Counters.GCounter import GCounter
 from CvRDTs.Tables.DWFlags import DWFlags
 
 # import ConcreteTables
