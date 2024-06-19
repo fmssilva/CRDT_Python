@@ -10,16 +10,16 @@ class PK:
     def __init__(self, pk_args: List[Int]):
         self.pk_args = pk_args
     
+    def __eq__(self, other: 'PK') -> BoolRef:
+        '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.'''
+        return self.equals(other)
+
     def equals(self, other: 'PK') -> BoolRef:
         '''return the equality of the given PK with the current PK.'''
         if isinstance(other, self.__class__) and hasattr(other, 'pk_args'):
             return And(len(self.pk_args) == len(other.pk_args), 
                 *[thisArg == thatArg for thisArg, thatArg in zip(self.pk_args, other.pk_args)])
         return False
-
-    def __eq__(self, other: 'PK') -> BoolRef:
-        '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.'''
-        return self.equals(other)
 
     # TODO: if we want to accept multiple data types we can receive a dict: attrib_name -> attrib_type, similar to Element Class
     @staticmethod

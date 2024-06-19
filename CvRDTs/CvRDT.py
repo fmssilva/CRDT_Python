@@ -19,18 +19,27 @@ class CvRDT(ABC, Generic[T]):
         Because these proofs will be run by Z3, we use Z3 types (BoolRef, Int, etc) and not python types (bool, int, etc)
         If possible, use always Int instead of str for better performance.'''
 
+    def compatible(self, that: T) -> BoolRef:
+        """Exclude replicas that are not compatible."""
+        return True
+    
+    def reachable(self) -> BoolRef:
+        """Excludes states that are not reachable in practice."""
+        return True
+    
     @abstractmethod
     def __eq__(self, that: T) -> bool:
         '''When proving with Z3, we want to check if objects are equal to each other by value, and not by reference. 
             So we need to implement __eq__ methods in each class to override the (==) operator. 
-            Because if we don't implement __eq__, so (==) operator will fall back to default python object class __eq__, which compare references in memory if (self is other).'''
+            Because if we don't implement __eq__, so (==) operator will fall back to default python object class __eq__, which compare references in memory if (self is other).
+            @Pre: self.compatible(that)'''
         pass
 
     def equals(self, that: T) -> BoolRef:
         """When comparing CvRDT objects, we want to check if they are equal according to the `compare` method.
             Returns True if (this <= that && that <= this).
             @Pre: self.compatible(that)"""
-        return And(isinstance(that, self.__class__), isinstance(self, that.__class__),
+        return And(isinstance(that, self.__class__),
                    self.compare(that), that.compare(self))
     
     @abstractmethod
@@ -38,13 +47,6 @@ class CvRDT(ABC, Generic[T]):
         """Returns True if `self`<=`that`."""
         pass
     
-    def reachable(self) -> BoolRef:
-        """Excludes states that are not reachable in practice."""
-        return True
-
-    def compatible(self, that: T) -> BoolRef:
-        """Exclude replicas that are not compatible."""
-        return True
 
     @abstractmethod
     def merge(self, that: T) -> T:

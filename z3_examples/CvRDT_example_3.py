@@ -1,48 +1,40 @@
-from typing import List
+
+
 from z3 import *
+from typing import List
 
 
 
-'''Simple class to show a proof of a class with some Data Structure.
-
-    Also show that in our proofs, 
-    we might want to order our conditions so the easier conditions are done first. 
-    for example in this case our compatible is much more litter than reachable, 
-    so we write:
-            Implies(
-                And(x.compatible(y), x.reachable(), y.reachable()),
-                x.equals(y) == (x == y))
+''' Simple class to show a proof of a class with other objects as arguments.
+    For example the OuterClass has 2 BiggerValues as arguments.
     
-    TODO: confirm how Z3 works, if it organizes the constraints with some kind of optimization, maybe we don't need to worry about the order of the conditions.
+    Important to see that the OuterClass methods just call the BiggerValue methods.
 
-'''
+    Important to see the attention we need to have to give different names to the symbolic variables of the objects.
+    example now that we have 2 objects of the same type, and each of them with 3 instances, we need to give different names to all of that: 
+            bv1_instance1_args = [Int(f'bv1_inst1_{i}') for i in range(10)]
+            bv1_instance2_args = [Int(f'bv1_inst2_{i}') for i in range(10)]
+            bv1_instance3_args = [Int(f'bv1_inst3_{i}') for i in range(10)]
+
+            bv2_instance1_args = [Int(f'bv2_inst1_{i}') for i in range(10)]
+            bv2_instance2_args = [Int(f'bv2_inst2_{i}') for i in range(10)]
+            bv2_instance3_args = [Int(f'bv2_inst3_{i}') for i in range(10)]
+    '''
+
 
 
 
 ##################################################################
 ##################       BiggerValue      ##############################
-  
+
 class BiggerValue:
     
     def __init__(self, values: List[int]):
         self.values = values
     
-    #     
-    # 
-    #   Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.
-    # 
-    # 
-
-    def compatible(self, that: 'BiggerValue') -> BoolRef:
-        return len(self.values) == len(that.values)
-
-    def reachable(self) -> BoolRef:
-        '''@Pre: self.compatible(that)'''
-        return And(*[self.values[i] >= 0 for i in range(len(self.values))])
-   
     def __eq__ (self, that: 'BiggerValue') -> BoolRef:
         '''@Pre: self.compatible(that)'''
-        return And(*[v1 == v2 for v1, v2 in zip(self.values, that.values)])
+        return And(*[self.values[i] == that.values[i] for i in range(len(self.values))])
     
 
     def equals(self, that: 'BiggerValue') -> BoolRef:
@@ -52,12 +44,49 @@ class BiggerValue:
     def compare(self, that: 'BiggerValue') -> BoolRef:
         '''@Pre: self.compatible(that)'''
         return And(*[self.values[i] <= that.values[i] for i in range(len(self.values))])
-           
+    
+    def compatible(self, that: 'BiggerValue') -> BoolRef:
+        return len(self.values) == len(that.values)
+        
+    def reachable(self) -> BoolRef:
+        '''@Pre: self.compatible(that)'''
+        return And(*[self.values[i] >= 0 for i in range(len(self.values))])
         
     def merge(self, that: 'BiggerValue') -> 'BiggerValue':
         '''@Pre: self.compatible(that)'''
         return BiggerValue([If(self.values[i] > that.values[i], self.values[i], that.values[i]) for i in range(len(self.values))])
     
+
+
+class OuterClass:
+    
+    def __init__(self, bv1: BiggerValue, bv2: BiggerValue):
+        self.bv1 = bv1
+        self.bv2 = bv2
+    
+    def __eq__ (self, that: 'BiggerValue') -> BoolRef:
+        '''@Pre: self.compatible(that)'''
+        return And(self.bv1.__eq__(that.bv1), self.bv2.__eq__(that.bv2))
+    
+    def equals(self, that: 'BiggerValue') -> BoolRef:
+        '''@Pre: self.compatible(that)'''
+        return And(self.compare(that), that.compare(self))
+    
+    def compare(self, that: 'BiggerValue') -> BoolRef:
+        '''@Pre: self.compatible(that)'''
+        return And(self.bv1.compare(that.bv1), self.bv2.compare(that.bv2))
+            
+    def compatible(self, that: 'BiggerValue') -> BoolRef:
+        return And(self.bv1.compatible(that.bv1), self.bv2.compatible(that.bv2))
+        
+    def reachable(self) -> BoolRef:
+        '''@Pre: self.compatible(that)'''
+        return And(self.bv1.reachable(), self.bv2.reachable())
+        
+    def merge(self, that: 'BiggerValue') -> 'BiggerValue':
+        '''@Pre: self.compatible(that)'''
+        return OuterClass(self.bv1.merge(that.bv1), self.bv2.merge(that.bv2))
+
 
 ##################################################################
 ##################       PROOFS      #############################
@@ -151,19 +180,32 @@ def print_proof(proof_name: str, solver: Solver):
 if __name__ == "__main__":
     
     # Define symbolic variables (all different names for Z3 proofs)
-    instance1_args = [Int(f'inst1_{i}') for i in range(10)]
-    instance2_args = [Int(f'inst2_{i}') for i in range(10)]
-    instance3_args = [Int(f'inst3_{i}') for i in range(10)]
+    bv1_instance1_args = [Int(f'bv1_inst1_{i}') for i in range(10)]
+    bv1_instance2_args = [Int(f'bv1_inst2_{i}') for i in range(10)]
+    bv1_instance3_args = [Int(f'bv1_inst3_{i}') for i in range(10)]
+
+    bv2_instance1_args = [Int(f'bv2_inst1_{i}') for i in range(10)]
+    bv2_instance2_args = [Int(f'bv2_inst2_{i}') for i in range(10)]
+    bv2_instance3_args = [Int(f'bv2_inst3_{i}') for i in range(10)]
 
     # Create instances
-    b1 = BiggerValue(instance1_args)
-    b2 = BiggerValue(instance2_args)
-    b3 = BiggerValue(instance3_args)
+    bv1_inst1 = BiggerValue(bv1_instance1_args)
+    bv1_inst2 = BiggerValue(bv1_instance2_args)
+    bv1_inst3 = BiggerValue(bv1_instance3_args)
+
+    bv2_inst1 = BiggerValue(bv2_instance1_args)
+    bv2_inst2 = BiggerValue(bv2_instance2_args)
+    bv2_inst3 = BiggerValue(bv2_instance3_args)
+
+    # Create instances of the OuterClass
+    b1 = OuterClass(bv1_inst1, bv2_inst1)
+    b2 = OuterClass(bv1_inst2, bv2_inst2)
+    b3 = OuterClass(bv1_inst3, bv2_inst3)
 
     # Create Lists of symbolic variables for the proofs
-    vars_for_1_instance = instance1_args
-    vars_for_2_instances = instance1_args + instance2_args
-    vars_for_3_instances = instance1_args + instance2_args + instance3_args
+    vars_for_1_instance = bv1_instance1_args + bv2_instance1_args
+    vars_for_2_instances = vars_for_1_instance + bv1_instance2_args + bv2_instance2_args
+    vars_for_3_instances = vars_for_2_instances + bv1_instance3_args + bv2_instance3_args
     
     solver = Solver()
 

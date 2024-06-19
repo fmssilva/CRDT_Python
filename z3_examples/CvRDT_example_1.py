@@ -2,29 +2,45 @@ from typing import List
 from z3 import *
 
 
+
+''' Simple BiggerValue proof example. 
+    Important to see how to define proofs for BiggerValues using Z3...
+    
+    And important to confirm that python treats (==) as checking equal objects references in memory, 
+    So we need to implement __eq__ in our classes to compare values, because if not the objects will always be different.'''
+
+
+
+
 ##################################################################
-##################       CvRDT      ##############################
+##################       BiggerValue      ##############################
   
 class BiggerValue:
-    '''A simple class to represent CvRDT, basically a value that is bigger than or equal to 0.'''
+    '''A simple class to represent BiggerValue, basically a value that is bigger than or equal to 0.'''
     def __init__(self, value: Int):
         self.value = value
     
-    def reachable(self) -> BoolRef:
-        return self.value >= 0
+    #     
+    # 
+    #   Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.
+    # 
+    # 
+
+    def __eq__ (self, that: 'BiggerValue') -> BoolRef:
+        return self.value == that.value
+    
+    def equals(self, that: 'BiggerValue') -> BoolRef:
+        return And(self.compare(that), that.compare(self))
     
     def compare(self, that: 'BiggerValue') -> BoolRef:
         return self.value <= that.value
     
-    def equals(self, that: 'BiggerValue') -> BoolRef:
-        return And(self.compare(that), that.compare(self))
-
-    def __eq__ (self, that: 'BiggerValue') -> BoolRef:
-        return self.value == that.value
-
     def compatible(self, that: 'BiggerValue') -> BoolRef:
         return True
     
+    def reachable(self) -> BoolRef:
+        return self.value >= 0
+        
     def merge(self, that: 'BiggerValue') -> 'BiggerValue':
         return BiggerValue(If(self.value >= that.value, self.value, that.value))
     
@@ -33,83 +49,78 @@ class BiggerValue:
 ##################       PROOFS      #############################
 
 class Proofs:
-    '''A class to define the properties that all CvRDTs must satisfy'''
+    '''A class to define the properties that all BiggerValues must satisfy'''
     
     @staticmethod
     def compare_correct(vars_for_2_instances: List[str], x: BiggerValue, y: BiggerValue) -> BoolRef:
-        '''This proof uses the (==) operator to compare two instances of the class BiggerValue.
-            For that we need to implement the __eq__ method in the class BiggerValue. 
-            Because if not, the solver will fall back to the default behavior provided by the base object class
-            which will return True if (self is other). That means the 2 objects must be the same reference in memory. 
-            But we want to compare values of the objects, so we need to implement __eq__ in our classes.'''
-        return ForAll(vars_for_2_instances, Implies(
-            And(x.reachable(), y.reachable(), x.compatible(y)),
-            x.equals(y) == (x == y) # -->> __eq__ 
-        ))
-
-
+        return ForAll(vars_for_2_instances, 
+            Implies(
+                And(x.reachable(), y.reachable(), x.compatible(y)),
+                x.equals(y) == (x == y)
+            ))    
+       
     @staticmethod
     def compatible_commutes(vars_for_2_instances: List[str], x: BiggerValue, y: BiggerValue) -> BoolRef:
-        return ForAll(vars_for_2_instances, Implies(
-            And(x.reachable(), y.reachable()),
-            x.compatible(y) == y.compatible(x)
-        ))
+        return ForAll(vars_for_2_instances, 
+            Implies(
+                And(x.reachable(), y.reachable(), x.compatible(y)),
+                x.compatible(y) == y.compatible(x)
+            ))
+       
 
     @staticmethod
     def merge_idempotent(vars_for_1_instances: List[str], x: BiggerValue) -> BoolRef:
-        return ForAll(vars_for_1_instances, Implies(
-            x.reachable(),
-            x.merge(x).equals(x)
-        ))
+        return ForAll(vars_for_1_instances, 
+            Implies(
+                x.reachable(),
+                x.merge(x).equals(x)
+            ))
+       
 
     @staticmethod
     def merge_commutative(vars_for_2_instances: List[str], x: BiggerValue, y: BiggerValue) -> BoolRef:
-        return ForAll(vars_for_2_instances, Implies(
-            And(x.reachable(), y.reachable(), x.compatible(y)),
-            And(
-                x.merge(y).equals(y.merge(x)),
-                x.merge(y).reachable()
-            )
-        ))
+        return ForAll(vars_for_2_instances, 
+            Implies(
+                And(x.reachable(), y.reachable(), x.compatible(y)),
+                x.merge(y).equals(y.merge(x))
+            ))
+       
 
     @staticmethod
     def merge_associative(vars_for_3_instances: List[str], x: BiggerValue, y: BiggerValue, z: BiggerValue) -> BoolRef:
-        return ForAll(vars_for_3_instances, Implies(
-            And(
-                x.reachable(), y.reachable(), z.reachable(),
-                x.compatible(y), x.compatible(z), y.compatible(z)
-            ),
-            And(
-                x.merge(y).merge(z).equals(x.merge(y.merge(z))),
-                x.merge(y).merge(z).reachable()
-            )
-        ))
+        return ForAll(vars_for_3_instances, 
+            Implies(
+                And(x.reachable(), y.reachable(), z.reachable(),
+                    x.compatible(y), x.compatible(z), y.compatible(z)), 
+                x.merge(y).merge(z).equals(x.merge(y.merge(z)))
+            ))
+      
 
     @staticmethod
     def merge_reachable(vars_for_3_instances: List[str], x: BiggerValue, y: BiggerValue, z: BiggerValue) -> BoolRef:
-        return ForAll(vars_for_3_instances, Implies(
-            And(
-                x.reachable(), y.reachable(), z.reachable(),
-                x.compatible(y), x.compatible(z), y.compatible(z)
-            ),
-            And(
-                x.merge(y).reachable(),
-                x.merge(y).merge(z).reachable()
-            )
-        ))
+        return ForAll(vars_for_3_instances, 
+            Implies(
+                And(
+                    x.reachable(), y.reachable(), z.reachable(),
+                    x.compatible(y), x.compatible(z), y.compatible(z)),
+                And(
+                    x.merge(y).reachable(),
+                    x.merge(y).merge(z).reachable())
+            ))
+      
 
     @staticmethod
     def merge_compatible(vars_for_3_instances: List[str], x: BiggerValue, y: BiggerValue, z: BiggerValue) -> BoolRef:
-        return ForAll(vars_for_3_instances, Implies(
-            And(
-                x.reachable(), y.reachable(), z.reachable(),
-                x.compatible(y), x.compatible(z), y.compatible(z)
-            ),
-            And(
-                x.merge(y).compatible(z),
-                x.compatible(y.merge(z))
-            )
-        ))
+        return ForAll(vars_for_3_instances, 
+            Implies(
+                And(
+                    x.reachable(), y.reachable(), z.reachable(),
+                    x.compatible(y), x.compatible(z), y.compatible(z)),
+                And(
+                    x.merge(y).compatible(z),
+                    x.compatible(y.merge(z)))
+            ))
+       
 
 
 ###################################################################

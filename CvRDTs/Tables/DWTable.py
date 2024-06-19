@@ -144,6 +144,7 @@ class DWTable(Table):
             flag1_args, flag2_args, flag3_args, flag_vars_for_1_instance, flag_args_for_2_instances, flag_args_for_3_instances = DWFlags.getArgs(str(i) + "_DWTab_" + extra_id, elem.number_of_FKs)
             
             elements1[elem1.getPK()] = (DWFlags(*flag1_args), elem1)
+            exit()
             elements2[elem2.getPK()] = (DWFlags(*flag2_args), elem2)
             elements3[elem3.getPK()] = (DWFlags(*flag3_args), elem3)
 

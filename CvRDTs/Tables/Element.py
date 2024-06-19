@@ -14,14 +14,13 @@ class Element:
     def __init__(self, elem_args):
         self.elem_args = elem_args
 
-
+    def __eq__(self, other: 'Element') -> BoolRef:
+        '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.'''
+        return And(*[thisArg.__eq__(thatArg) for thisArg, thatArg in zip (self.elem_args, other.elem_args)])
+    
     def equals(self, other: 'Element') -> BoolRef:
         '''return the equality of the given Element with the current Element.'''
         return And(*[thisArg.equals(thatArg) for thisArg, thatArg in zip (self.elem_args, other.elem_args)])
-
-    def __eq__(self, other: 'Element') -> BoolRef:
-        '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.'''
-        return And(*[thisArg.pure_equals(thatArg) for thisArg, thatArg in zip (self.elem_args, other.elem_args)])
 
     def compare(self, other: 'Element') -> BoolRef:
         # TODO - mas não é preciso porque fazemos override ao equals
