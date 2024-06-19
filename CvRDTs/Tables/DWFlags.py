@@ -15,23 +15,34 @@ class DWFlags(CvRDT['DWFlags']):
         self.flag = flag
         self.fk_versions = fk_versions
 
-    def reachable(self) -> BoolRef:
-        return And(
-            self.version >= Version.INIT_VERSION,
-            Or (self.flag == Status.DELETED, self.flag == Status.VISIBLE),
-            And(*[fk_version >= Version.INIT_VERSION for fk_version in self.fk_versions])
-        )
-
-    def equals(self, that: 'DWFlags') -> BoolRef:
+    def __eq__(self, that: 'DWFlags') -> BoolRef:
+        '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.'''
         return And(
             self.version == that.version,
             self.flag == that.flag,
             And(*[fk1 == fk2 for fk1, fk2 in zip(self.fk_versions, that.fk_versions)])
         )
 
+    def equals(self, that: 'DWFlags') -> BoolRef:
+        ''' When comparing CvRDT objects, we want to check if they are equal according to the `compare` method.
+              CvRDT equals: return True if (this <= that && that <= this).
+            But for better efficiency we can override equals directly and check if each field (this == that), instead of testing (this <= that && that <= this).'''
+        return self.__eq__(that)
+
     def compare(self, that: 'DWFlags') -> BoolRef:
-        # TODO - mas não é preciso porque fazemos override ao equals
-        return False
+        '''Returns True if `self`<=`that`.
+            If "equals" is implemented directly, this compare will not be used.'''
+        return And(
+            self.version <= that.version,
+            self.flag <= that.flag,
+            And(*[fk1 <= fk2 for fk1, fk2 in zip(self.fk_versions, that.fk_versions)])
+        )
+
+    def reachable(self) -> BoolRef:
+        return And( self.version >= Version.INIT_VERSION,
+                    Or (self.flag == Status.DELETED, self.flag == Status.VISIBLE),
+                    And(*[fk_version >= Version.INIT_VERSION for fk_version in self.fk_versions])
+        )
 
     def compatible(self, that: 'DWFlags') -> BoolRef:
         return len(self.fk_versions) == len(that.fk_versions)
@@ -44,7 +55,7 @@ class DWFlags(CvRDT['DWFlags']):
             return that
         # if same version and same flag -> we merge the fk_versions choosing the bigger one; if both deleted we still need to merge the fk_versions so the merge is comutative
         if is_true (self.flag == that.flag):
-            merged_fk_versions = [If(fk1 > fk2, fk1, fk2) for fk1, fk2 in zip(self.fk_versions, that.fk_versions)]
+            merged_fk_versions = [If(fk1 >= fk2, fk1, fk2) for fk1, fk2 in zip(self.fk_versions, that.fk_versions)]
             return DWFlags(self.version, self.flag, merged_fk_versions)
         # if different flags -> we choose the deleted one
         if is_true (self.flag == Status.DELETED):
@@ -63,17 +74,23 @@ class DWFlags(CvRDT['DWFlags']):
     def set_flag(self, new_flag: Int) -> 'DWFlags':
         return DWFlags(self.version, new_flag, self.fk_versions)
 
-   
+
+
+
+    ############################################################################################################
+    #      Helper methods for the Proofs
+    ############################################################################################################
+
     @staticmethod
     def getArgs(extra_id: str, tot_FKs:int):
         '''return symbolic all different variables for 3 different instances of DWFlags, and also list of those variables to be used by Z3.'''
         
         # symbolic varibales for 3 different instances of DWFlags
-        version1, version2, version3 = Ints(f'version1{extra_id} version2{extra_id} version3{extra_id}')
-        flag1, flag2, flag3 = Ints(f'flag1{extra_id} flag2{extra_id} flag3{extra_id}')
-        fk_version1 = [Int(f'fk_versions1{extra_id}{i}') for i in range(tot_FKs)]
-        fk_version2 = [Int(f'fk_versions2{extra_id}{i}') for i in range(tot_FKs)]
-        fk_version3 = [Int(f'fk_versions3{extra_id}{i}') for i in range(tot_FKs)]
+        version1, version2, version3 = Ints(f'version1_{extra_id} version2_{extra_id} version3_{extra_id}')
+        flag1, flag2, flag3 = Ints(f'flag1_{extra_id} flag2_{extra_id} flag3_{extra_id}')
+        fk_version1 = [Int(f'fk_versions1_{i}_{extra_id}') for i in range(tot_FKs)]
+        fk_version2 = [Int(f'fk_versions2_{i}_{extra_id}') for i in range(tot_FKs)]
+        fk_version3 = [Int(f'fk_versions3_{i}_{extra_id}') for i in range(tot_FKs)]
 
         DWFlags1_args = [version1, flag1, fk_version1]
         DWFlags2_args = [version2, flag2, fk_version2]

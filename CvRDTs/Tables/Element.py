@@ -19,6 +19,9 @@ class Element:
         '''return the equality of the given Element with the current Element.'''
         return And(*[thisArg.equals(thatArg) for thisArg, thatArg in zip (self.elem_args, other.elem_args)])
 
+    def __eq__(self, other: 'Element') -> BoolRef:
+        '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.'''
+        return And(*[thisArg.pure_equals(thatArg) for thisArg, thatArg in zip (self.elem_args, other.elem_args)])
 
     def compare(self, other: 'Element') -> BoolRef:
         # TODO - mas não é preciso porque fazemos override ao equals
@@ -65,7 +68,7 @@ class Element:
             # getArgs of the attribute class
             att1_args, att2_args, att3_args, att_vars_for_1_instance, att_vars_for_2_instances, att_vars_for_3_instances = attrib_type.getArgs(attrib_name + extra_id)
             
-            # create the object of the attribute and add it as argument of the Element
+            # create an instance of the attribute and add to args the Element
             elem1_args.append(attrib_type(*att1_args)) # Element, like Album, has atributes which are object like (albPK: AlbPK, artFK: ArtPK, price: LWWRegister)... 
             elem2_args.append(attrib_type(*att2_args)) # so here we are creating those objects with the given arguments like, and adding them to the list of arguments of the Element
             elem3_args.append(attrib_type(*att3_args)) # a similar concrete implementation is: AlbPK(*albPK1_args), or ArtPK(*artFK1_args), or LWWRegister(*year1_args), or LWWRegister(*price1_args)...

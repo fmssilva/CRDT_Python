@@ -2,17 +2,15 @@
 from typing import List
 from z3 import *
 
-from ConcreteTables.Alb import AlbPK
-from ConcreteTables.Alb_FK_System import Alb_FK_System
-from ConcreteTables.Art import ArtPK
-from CvRDTs.CvRDT import T, CvRDT
+from CvRDTs.Tables.FK_System import FK_System
+from CvRDTs.Tables.PK import PK
 
 
-class Ref_Integrity_Proofs:
+class Proofs_Ref_Integrity:
     '''Ref_Integrity_Proofs provides the proofs that a Table must satisfy to keep referential integrity.'''
     
   
-    def generic_referential_integrity(self, vars_for_2_FK_Syst_inst_and_1_pk_inst: List[str], s1: 'Alb_FK_System', s2: 'Alb_FK_System', pk: AlbPK) -> BoolRef:
+    def generic_referential_integrity(self, vars_for_2_FK_Syst_inst_and_1_pk_inst: List[str], s1: 'FK_System', s2: 'FK_System', pk: PK) -> BoolRef:
         return ForAll(vars_for_2_FK_Syst_inst_and_1_pk_inst, Implies(
             And(
                 s1.compatible(s2),

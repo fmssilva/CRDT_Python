@@ -3,14 +3,13 @@ from z3 import *
 from abc import abstractmethod
 from typing import Callable, Dict, Tuple
 
-from CvRDTs.CvRDT import CvRDT
 from CvRDTs.Tables.Element import Element
 from CvRDTs.Tables.PK import PK
 from CvRDTs.Tables.Table import Table
 from CvRDTs.Time.Time import Time
 from CvRDTs.Tables.DWFlags import DWFlags
 from CvRDTs.Tables.Flags_Constants import Status, Version
-from PROOF_PARAMETERS import BEFORE_FUNCTION_TIME_TYPE, MAX_TABLES_SIZE_TO_PROVE
+from PROOF_PARAMETERS import BEFORE_FUNCTION_TIME_TYPE, MAX_TABLES_SIZE_TO_PROVE 
 
 
 
@@ -22,13 +21,6 @@ class DWTable(Table):
     def __init__(self, elements: Dict[PK, Tuple[DWFlags, Element]], before: Callable[[Time, Time], bool]): 
         super().__init__(elements, before)
 
-    @abstractmethod
-    def copy(self, newElements: Dict[PK, Tuple[DWFlags, Element]]) -> 'DWTable':
-        pass
-
-    @abstractmethod
-    def getNumFKs(self) -> int:
-        pass
     
     def reachable(self) -> BoolRef : 
         '''for all elements in elements.values() check if they respect the conditions'''
@@ -55,6 +47,19 @@ class DWTable(Table):
                 ) for (e1, e2) in zip(self.elements.values(), other.elements.values())
             ])
         )
+
+    def __eq__(self, other: 'DWTable') -> BoolRef:
+        '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.'''
+        return And(
+            self.before == other.before,
+            And(*[
+                And(
+                    e1[0].__eq__(e2[0]),
+                    e1[1].__eq__(e2[1])
+                ) for (e1, e2) in zip(self.elements.values(), other.elements.values())
+            ])
+        )
+
 
     def compare(self, other: 'DWTable') -> BoolRef:
         '''for all elements in zip (this values(), that values()), check if they are comparable'''
@@ -133,10 +138,10 @@ class DWTable(Table):
 
         elements1, elements2, elements3 = {}, {}, {}
         for i in range(MAX_TABLES_SIZE_TO_PROVE):  
-            elem1_args, elem2_args, elem3_args3, elem_vars_for_1_instance, elem_args_for_2_instances, elem_args_for_3_instances = elem.getArgs(str(i)+extra_id)
+            elem1_args, elem2_args, elem3_args3, elem_vars_for_1_instance, elem_args_for_2_instances, elem_args_for_3_instances = elem.getArgs(str(i) + "_DWTab_" + extra_id)
             elem1, elem2, elem3 = elem(*elem1_args), elem(*elem2_args), elem(*elem3_args3)
             
-            flag1_args, flag2_args, flag3_args, flag_vars_for_1_instance, flag_args_for_2_instances, flag_args_for_3_instances = DWFlags.getArgs(str(i)+extra_id, elem.number_of_FKs)
+            flag1_args, flag2_args, flag3_args, flag_vars_for_1_instance, flag_args_for_2_instances, flag_args_for_3_instances = DWFlags.getArgs(str(i) + "_DWTab_" + extra_id, elem.number_of_FKs)
             
             elements1[elem1.getPK()] = (DWFlags(*flag1_args), elem1)
             elements2[elem2.getPK()] = (DWFlags(*flag2_args), elem2)

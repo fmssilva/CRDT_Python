@@ -34,14 +34,17 @@ class LamportClock(CvRDT['LamportClock']):
     def merge(self, that: 'LamportClock') -> 'LamportClock':
         return self.sync(that)
 
+    def __eq__(self, that: 'LamportClock') -> BoolRef:
+        '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.'''
+        return And(self.replica == that.replica, self.counter == that.counter)
 
     @staticmethod
     def getArgs(extra_id: str):
         '''return symbolic all different variables for 3 different instances of LamportClock, and also list of those variables to be used by Z3.'''
 
         # symbolic varibales for 3 different instances of LamportClock
-        replica1, replica2, replica3 = Ints('replica1%s replica2%s replica3%s' % (extra_id, extra_id, extra_id))
-        counter1, counter2, counter3 = Ints('counter1%s counter2%s counter3%s' % (extra_id, extra_id, extra_id))
+        replica1, replica2, replica3 = Ints(f'replica1_{extra_id} replica2_{extra_id} replica3_{extra_id}')
+        counter1, counter2, counter3 = Ints(f'counter1_{extra_id} counter2_{extra_id} counter3_{extra_id}')
         
         LC1_args = [replica1, counter1]
         LC2_args = [replica2, counter2]

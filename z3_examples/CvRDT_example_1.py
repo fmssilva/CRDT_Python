@@ -4,7 +4,7 @@ from z3 import *
 
 ##################################################################
 ##################       CvRDT      ##############################
-
+  
 class BiggerValue:
     '''A simple class to represent CvRDT, basically a value that is bigger than or equal to 0.'''
     def __init__(self, value: Int):
@@ -18,6 +18,9 @@ class BiggerValue:
     
     def equals(self, that: 'BiggerValue') -> BoolRef:
         return And(self.compare(that), that.compare(self))
+
+    def __eq__ (self, that: 'BiggerValue') -> BoolRef:
+        return self.value == that.value
 
     def compatible(self, that: 'BiggerValue') -> BoolRef:
         return True
@@ -34,9 +37,14 @@ class Proofs:
     
     @staticmethod
     def compare_correct(vars_for_2_instances: List[str], x: BiggerValue, y: BiggerValue) -> BoolRef:
+        '''This proof uses the (==) operator to compare two instances of the class BiggerValue.
+            For that we need to implement the __eq__ method in the class BiggerValue. 
+            Because if not, the solver will fall back to the default behavior provided by the base object class
+            which will return True if (self is other). That means the 2 objects must be the same reference in memory. 
+            But we want to compare values of the objects, so we need to implement __eq__ in our classes.'''
         return ForAll(vars_for_2_instances, Implies(
             And(x.reachable(), y.reachable(), x.compatible(y)),
-            x.equals(y) == (x == y)
+            x.equals(y) == (x == y) # -->> __eq__ 
         ))
 
 

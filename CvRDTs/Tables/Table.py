@@ -1,4 +1,5 @@
 
+from abc import abstractmethod
 from typing import Callable, Dict, Tuple
 from z3 import *
 
@@ -15,3 +16,13 @@ class Table(CvRDT['Table']):
     def __init__(self, elements: Dict[PK, Tuple[DWFlags, Element]], before: Callable[[Time, Time], bool]): 
         self.elements = elements  # elements is a dict with PK as key and (DWFlags, V) as value
         self.before = before  # before is a function (Time, Time) => Bool
+
+    @abstractmethod
+    def copy(self, newElements: Dict[PK, Tuple[DWFlags, Element]]) -> 'Table':
+        pass
+
+    @abstractmethod
+    def getNumFKs(self) -> int:
+        pass
+
+    

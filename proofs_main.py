@@ -1,28 +1,32 @@
 
-from typing import List, Tuple
 from z3 import *
+from typing import List
 
-from ConcreteTables.Alb import Alb, AlbPK
-from ConcreteTables.Alb_FK_System import Alb_FK_System
-from ConcreteTables.AlbsTable import AlbsTable
-from CvRDTs.CvRDTs_Proofs import CvRDT_Proofs
+# import Proofs
+from CvRDTs.Proofs_CvRDTs import Proofs_CvRDT
+from CvRDTs.Proofs_Ref_Integrity import Proofs_Ref_Integrity
 
-from CvRDTs.Counters.GCounter import GCounter
-from CvRDTs.Ref_Integrity_Proofs import Ref_Integrity_Proofs
+# import CvRDTs
 from CvRDTs.Time.LamportClock import LamportClock
-from CvRDTs.Registers.LWWRegister import LWWRegister
-from CvRDTs.Tables.DWFlags import DWFlags
-from ConcreteTables.Art import Art, ArtPK
-from ConcreteTables.ArtsTable import ArtsTable
 from CvRDTs.Time.VersionVector import VersionVector
+from CvRDTs.Registers.LWWRegister import LWWRegister
+from CvRDTs.Counters.GCounter import GCounter
+from CvRDTs.Tables.DWFlags import DWFlags
+
+# import ConcreteTables
+from ConcreteTables.Art import Art, ArtsTable
+from ConcreteTables.Alb import Alb, Alb_FK_System, AlbPK, AlbsTable
 
 
-#############################################################
-############       CHOOSE PROOF PARAMETERS        ###########
+
+#####################################################################
+############   STEP 1 ->>  CHOOSE PROOF PARAMETERS        ###########
 '''In PROOF_PARAMETERS.py file, set the proof parameters to use.'''
 
-#############################################################
-#############       CHOOSE PROOF TO RUN        ##############
+
+
+#####################################################################
+#############  STEP 1 ->>       CHOOSE PROOF TO RUN        ##########
 '''Choose: a) The CvRDT to prove;   b) The type of proof to run.'''
 
 CvRDT_TO_PROVE = 53
@@ -56,7 +60,7 @@ proofs_options = {
 }
 
 #############################################################
-################       RUN THE SCRIPT        ################
+############   STEP 1 ->>  RUN THE SCRIPT        ############
 #############################################################
 
 
@@ -104,8 +108,8 @@ if __name__ == "__main__":
     proof_to_run = proofs_options[PROOF_TO_RUN]
     
     print("\n\n\n\n\n\nStarting CvRDT proofs for ", CvRDT_to_prove.__name__)
-    proofs = CvRDT_Proofs()
-    arg_for_getArgs = ["main",50] if (CvRDT_to_prove == DWFlags or CvRDT_to_prove == VersionVector )else ["main"]
+    proofs = Proofs_CvRDT()
+    arg_for_getArgs = ["",50] if (CvRDT_to_prove == DWFlags or CvRDT_to_prove == VersionVector )else [""]
     instance1_args, instance2_args, instance3_args, vars_for_1_instance, vars_for_2_instances, vars_for_3_instances = CvRDT_to_prove.getArgs(*arg_for_getArgs)
     check_all_z3_variables_have_different_names(vars_for_3_instances)
 
@@ -169,8 +173,8 @@ if __name__ == "__main__":
     if CvRDT_to_prove == Alb_FK_System:
         print("\n\n\nStarting Ref_Integrity proofs for ", CvRDT_to_prove.__name__)
 
-        proofs = Ref_Integrity_Proofs()
-        FK1_args, FK2_args, albPK_args, vars_for_2_inst_of_FK_Syst_and_1_inst_of_its_PKs = CvRDT_to_prove.get_RefIntProof_Args("main")
+        proofs = Proofs_Ref_Integrity()
+        FK1_args, FK2_args, albPK_args, vars_for_2_inst_of_FK_Syst_and_1_inst_of_its_PKs = CvRDT_to_prove.get_RefIntProof_Args("")
         check_all_z3_variables_have_different_names(vars_for_2_inst_of_FK_Syst_and_1_inst_of_its_PKs)
 
         if proof_to_run in ["generic_referential_integrity", "ALL"]:

@@ -1,12 +1,55 @@
 from z3 import *
+from z3 import BoolRef
 
 from CvRDTs.CvRDT import CvRDT
-from PROOF_PARAMETERS import MAX_NUM_OF_REPLICAS
+from PROOF_PARAMETERS import NUMBER_OF_REPLICAS 
 
 class VersionVector(CvRDT['VersionVector']):
     
     def __init__(self, vector):
         self.vector = vector
+    
+    def __eq__(self, that: 'VersionVector') -> BoolRef:
+        return And(self.vector == that.vector)
+            # self.reachable(), that.reachable(),
+            # self.compatible(that),
+            # *[a == b for a, b in zip(self.vector, that.vector)])
+        
+    ########################################################################
+    ###################         CvRDT methods         ######################
+
+    def equals (self, that: 'VersionVector') -> bool:
+        '''@Pre: self.compatible(that)'''
+        return self.compare(that), that.compare(self)
+
+    def compare(self, that: 'VersionVector') -> BoolRef:
+        return self.beforeOrEqual(that)
+    
+    def compatible(self, that: 'VersionVector') -> BoolRef:
+        return And (self.networkSize() == that.networkSize(),
+                    self.wellFormedWithSize(), that.wellFormedWithSize())
+    
+    def reachable(self):
+        '''@Pre: self.compatible(that)'''
+        return And( self.networkSize() == NUMBER_OF_REPLICAS,
+                    *[v >= 0 for v in self.vector])
+    
+    def merge(self, that: 'VersionVector') -> 'VersionVector':
+        return self.sync(that)
+
+    ######################################################################
+    #################       VersionVector Operations       ###############
+
+    def networkSize(self) -> int:
+        return len(self.vector)
+    
+    def wellFormedWithSize(self) -> BoolRef:
+        return And(len(self.vector) == NUMBER_OF_REPLICAS, self.wellFormed())
+    
+    def wellFormed(self) -> BoolRef:
+        return And(*[And(isinstance(v, int), v >= 0) for v in self.vector])
+    
+
 
     def increment(self, replica: int) -> 'VersionVector':
         new_vector = self.vector[:] # copy by value (shallow copy)
@@ -37,31 +80,11 @@ class VersionVector(CvRDT['VersionVector']):
         new_vector = [If(a >= b, a, b) for a, b in zip(self.vector, that.vector)]
         return VersionVector(new_vector)
 
-    def wellFormed(self) -> BoolRef:
-        return And(*[And(isinstance(v, int), v >= 0) for v in self.vector])
-    
-    def wellFormedWithSize(self):
-        return And(len(self.vector) == MAX_NUM_OF_REPLICAS, self.wellFormed())
-
-    def networkSize(self):
-        return len(self.vector)
     
 
 
-    ########################################################################
-    ###################         CvRDT methods         ######################
 
-    def reachable(self):
-        return And(*[v >= 0 for v in self.vector])
-    
-    def compare(self, that: 'VersionVector') -> BoolRef:
-        return self.beforeOrEqual(that)
-    
-    def compatible(self, that: 'VersionVector') -> BoolRef:
-        return self.networkSize() == that.networkSize()
-    
-    def merge(self, that: 'VersionVector') -> 'VersionVector':
-        return self.sync(that)
+
 
 
 
@@ -72,9 +95,9 @@ class VersionVector(CvRDT['VersionVector']):
         '''return symbolic all different variables for 3 different instances of VersionVector, and also list of those variables to be used by Z3.'''
 
         # symbolic varibales for 3 different instances of VersionVector
-        vector1 = [Int('vectVersion1_%d%s' % (i, extra_id)) for i in range(totReplicas)]
-        vector2 = [Int('vectVersion2_%d%s' % (i, extra_id)) for i in range(totReplicas)]
-        vector3 = [Int('vectVersion3_%d%s' % (i, extra_id)) for i in range(totReplicas)]
+        vector1 = [Int(f'vectVersion1_{i}_{extra_id}') for i in range(totReplicas)]
+        vector2 = [Int(f'vectVersion2_{i}_{extra_id}') for i in range(totReplicas)]
+        vector3 = [Int(f'vectVersion3_{i}_{extra_id}') for i in range(totReplicas)]
 
         vv1_args = [vector1]
         vv2_args = [vector2]

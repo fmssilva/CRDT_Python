@@ -44,6 +44,10 @@ class GCounter(CvRDT['GCounter']):
         assert self.network_size() == that.network_size(), "Network sizes do not match"
         return And(*[e1 <= e2 for e1, e2 in zip(self.entries, that.entries)])
     
+    def __eq__(self, that):
+        '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.'''
+        return And(*[e1 == e2 for e1, e2 in zip(self.entries, that.entries)])
+
     def compatible(self, that: 'GCounter') -> BoolRef:
         return self.network_size() == that.network_size()
 
@@ -55,9 +59,9 @@ class GCounter(CvRDT['GCounter']):
         '''return symbolic all different variables for 3 different instances of GCounter, and also list of those variables to be used by Z3.'''
 
         # symbolic varibales for 3 different instances of GCounter
-        GC1_entries = [Int(f'GC_1{extra_id}_entry_{i}') for i in range(totReplicas)] # each entry must have a different name so we use i to differentiate them
-        GC2_entries = [Int(f'GC_2{extra_id}_entry_{i}') for i in range(totReplicas)] # and to differentiate for each GC we use GC1, GC2, GC3
-        GC3_entries = [Int(f'GC_3{extra_id}_entry_{i}') for i in range(totReplicas)]
+        GC1_entries = [Int(f'GC1_entry_{i}_{extra_id}') for i in range(totReplicas)] # each entry must have a different name so we use i to differentiate them
+        GC2_entries = [Int(f'GC2_entry_{i}_{extra_id}') for i in range(totReplicas)] # and to differentiate for each GC we use GC1, GC2, GC3
+        GC3_entries = [Int(f'GC3_entry_{i}_{extra_id}') for i in range(totReplicas)]
         
         GC1_args = [GC1_entries] # we put a list inside a list [[]] so then *args will unpack and use the inner list as simple arg
         GC2_args = [GC2_entries]

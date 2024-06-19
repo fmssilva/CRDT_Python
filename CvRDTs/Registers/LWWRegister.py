@@ -31,6 +31,10 @@ class LWWRegister(Generic[V], CvRDT['LWWRegister[V]']):
     def compare(self, that: 'LWWRegister[V]') -> BoolRef:
         return self.stamp.smaller_or_equal(that.stamp)
 
+    def __eq__(self, that: 'LWWRegister[V]') -> BoolRef:
+        '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.'''
+        return And(self.value == that.value, self.stamp.__eq__(that.stamp))
+
     def compatible(self, that: 'LWWRegister[V]') -> BoolRef:
         return Implies(self.stamp == that.stamp, self.value == that.value)
 
@@ -40,8 +44,8 @@ class LWWRegister(Generic[V], CvRDT['LWWRegister[V]']):
         '''return symbolic all different variables for 3 different instances of LWWRegister, and also list of those variables to be used by Z3.'''
 
         # symbolic varibales for 3 different instances of LWWRegister
-        value1, value2, value3 = Ints('LWWvalue1%s LWWvalue2%s LWWvalue3%s' % (extra_id, extra_id, extra_id) )
-        lc1_args, lc2_args, lc3_args, lc_vars_for_1_instance, lc_vars_for_2_instances, lc_vars_for_3_instances = LamportClock.getArgs(extra_id+"LWW")
+        value1, value2, value3 = Ints(f'LWW_value1_{extra_id} LWW_value2_{extra_id} LWW_value3_{extra_id}')
+        lc1_args, lc2_args, lc3_args, lc_vars_for_1_instance, lc_vars_for_2_instances, lc_vars_for_3_instances = LamportClock.getArgs("LWW_" + extra_id)
 
         lww1_args = [value1, LamportClock(*lc1_args)]
         lww2_args = [value2, LamportClock(*lc2_args)]

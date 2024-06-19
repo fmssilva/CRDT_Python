@@ -1,37 +1,41 @@
+from typing import Callable, Dict, Tuple
 from z3 import *
 
 from CvRDTs.CvRDT import CvRDT
+from CvRDTs.Time.Time import Time
+
 from CvRDTs.Tables.PK import PK
 from CvRDTs.Tables.Element import Element
-
+from CvRDTs.Tables.DWFlags import DWFlags
+from CvRDTs.Tables.DWTable import DWTable
 from CvRDTs.Registers.LWWRegister import LWWRegister
 
 
-######################################################################################
-##############################  ART PK  ##############################################
+
+###############################################################
+######################  ART PK  ###############################
 
 class ArtPK(PK):
     '''Primary Key for the Art class. It has only one attribute: name.
         We implement name as Int for better performance in Z3.'''
 
     def __init__(self, name: Int):
+        super().__init__([name])
         self.name = name
 
     def reachable(self) -> BoolRef:
+        '''If PK attributes have some CHECK constraints, they should be implemented here. Otherwise, return True.'''
         return True
-
-    def equals(self, other: 'ArtPK') -> BoolRef:
-        return self.name == other.name
-    
+   
     @staticmethod
     def getArgs(extra_id: str):
         '''return symbolic all different variables for 3 different instances of ArtPK, and also list of those variables to be used by Z3.'''
-        return PK.getArgs("artPK_"+extra_id, ["name"])
+        return PK.getArgs("artPK_" + extra_id, ["name_"])
     
 
 
-#####################################################################################
-#############################  ART  #################################################
+##############################################################
+######################  ART   ELEM  ##########################
 
 class Art(Element, CvRDT['Art']):
     '''A class to represent an Art. It has 2 attributes: artPK and age.'''
@@ -52,17 +56,33 @@ class Art(Element, CvRDT['Art']):
     @staticmethod
     def getArgs(extra_id: str):
         '''return symbolic all different variables for 3 different instances of Art, and also list of those variables to be used by Z3.'''
+        return Element.getArgs("art_"+extra_id, {"artPK_": ArtPK, "age_": LWWRegister})
 
-        # symbolic varibales for 3 different instances of Art
-        artPK1_args, artPK2_args, artPK3_args, artPK_vars_for_1_instance, artPK_vars_for_2_instances, artPK_vars_for_3_instances = ArtPK.getArgs(extra_id+"artPK")
-        age1_args, age2_args, age3_args, age_vars_for_1_instance, age_vars_for_2_instances, age_vars_for_3_instances = LWWRegister.getArgs(extra_id+"age")
 
-        art1_args = [ArtPK(*artPK1_args), LWWRegister(*age1_args)]
-        art2_args = [ArtPK(*artPK2_args), LWWRegister(*age2_args)]
-        art3_args = [ArtPK(*artPK3_args), LWWRegister(*age3_args)]
+##############################################################
+######################  ART  TABLE  ##########################
 
-        z3_vars_for_1_instance = artPK_vars_for_1_instance + age_vars_for_1_instance
-        z3_vars_for_2_instances = artPK_vars_for_2_instances + age_vars_for_2_instances
-        z3_vars_for_3_instances = artPK_vars_for_3_instances + age_vars_for_3_instances
 
-        return art1_args, art2_args, art3_args, z3_vars_for_1_instance, z3_vars_for_2_instances, z3_vars_for_3_instances
+class ArtsTable(DWTable):
+    '''ArtsTable extends DWTable.'''
+    
+    def __init__(self, elements: Dict[ArtPK, Tuple[DWFlags, Art]], before: Callable[[Time, Time], bool]):
+        super().__init__(elements, before)
+
+    def copy(self, newElements: Dict[ArtPK, Tuple[DWFlags, Art]]) -> 'ArtsTable':
+        return ArtsTable(newElements, self.before)
+
+    def getNumFKs(self) -> int:
+        return Art.number_of_FKs
+        
+    @staticmethod
+    def getArgs(extra_id: str):
+        '''return symbolic all different variables for 3 different instances of ArtsTable, and also list of those variables to be used by Z3.'''
+        return DWTable.getArgs("artsTab_" + extra_id, Art)
+    
+
+
+##############################################################
+###################  ART  FK_SYSTEM  #########################
+
+''' Art has no foreign keys.'''
