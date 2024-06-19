@@ -9,8 +9,8 @@ from CvRDTs.Tables.PK import PK
 class Proofs_Ref_Integrity:
     '''Ref_Integrity_Proofs provides the proofs that a Table must satisfy to keep referential integrity.'''
     
-  
-    def generic_referential_integrity(self, vars_for_2_FK_Syst_inst_and_1_pk_inst: List[str], s1: 'FK_System', s2: 'FK_System', pk: PK) -> BoolRef:
+    @staticmethod
+    def generic_referential_integrity(vars_for_2_FK_Syst_inst_and_1_pk_inst: List[str], s1: 'FK_System', s2: 'FK_System', pk: PK) -> BoolRef:
         return ForAll(vars_for_2_FK_Syst_inst_and_1_pk_inst, Implies(
             And(
                 s1.compatible(s2),

@@ -14,13 +14,20 @@ class PK:
         '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.'''
         return self.equals(other)
 
+    def __hash__(self) -> int:
+        ''' Because we override the __eq__ method, we must also override the __hash__ method
+            for the loock up to be done also by value and not by reference in memory.'''
+        return hash(tuple(self.pk_args))
+
     def equals(self, other: 'PK') -> BoolRef:
         '''return the equality of the given PK with the current PK.'''
         if isinstance(other, self.__class__) and hasattr(other, 'pk_args'):
+            # we use zip to enforce that each arg is in the same position in both elements
             return And(len(self.pk_args) == len(other.pk_args), 
                 *[thisArg == thatArg for thisArg, thatArg in zip(self.pk_args, other.pk_args)])
         return False
 
+    
     # TODO: if we want to accept multiple data types we can receive a dict: attrib_name -> attrib_type, similar to Element Class
     @staticmethod
     def getArgs(extra_id: str, pk_args: List[str]):

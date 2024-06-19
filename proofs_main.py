@@ -30,7 +30,7 @@ from ConcreteTables.Alb import Alb, Alb_FK_System, AlbPK, AlbsTable
 #############  STEP 1 ->>       CHOOSE PROOF TO RUN        ##########
 '''Choose: a) The CvRDT to prove;   b) The type of proof to run.'''
 
-CvRDT_TO_PROVE = 51
+CvRDT_TO_PROVE = 53
 CvRDT_options = { 
         # Test Examples: 
             0: TestClass,       # TESTS OK      (just some simple class with 2 inner object, each of them with List[int] args)
@@ -44,9 +44,9 @@ CvRDT_options = {
         # Tables:
             31: DWFlags,        # TESTS OK
             41: Art,            # TESTS OK
-            42: ArtsTable,
+            42: ArtsTable,      # TESTS OK
             51: Alb,            # TESTS OK
-            52: AlbsTable, 
+            52: AlbsTable,      # TESTS OK
             53: Alb_FK_System
 }
 
@@ -163,16 +163,15 @@ if __name__ == "__main__":
     # TODO: generalizar estas provas para qualquer FK_System
     
     if CvRDT_to_prove == Alb_FK_System:
-        print("\n\n\nStarting Ref_Integrity proofs for ", CvRDT_to_prove.__name__)
+        print("\nStarting Ref_Integrity proofs for ", CvRDT_to_prove.__name__)
 
         proofs = Proofs_Ref_Integrity
         FK1_args, FK2_args, albPK_args, vars_for_2_inst_of_FK_Syst_and_1_inst_of_its_PKs = CvRDT_to_prove.get_RefIntProof_Args("")
+        check_all_z3_variables_have_different_names(vars_for_2_inst_of_FK_Syst_and_1_inst_of_its_PKs)
 
         fk_syst_instance1 = CvRDT_to_prove(*FK1_args)
         fk_syst_instance2 = CvRDT_to_prove(*FK2_args)
         elem_pk_instance = AlbPK(*albPK_args)
-
-        check_all_z3_variables_have_different_names(vars_for_2_inst_of_FK_Syst_and_1_inst_of_its_PKs)
 
         if proof_to_run in ["generic_referential_integrity", "ALL"]:
             solver.add(proofs.generic_referential_integrity(
@@ -180,3 +179,4 @@ if __name__ == "__main__":
                     fk_syst_instance1, fk_syst_instance2, elem_pk_instance))
             print_proof("generic_referential_integrity", solver)
 
+print("\n")

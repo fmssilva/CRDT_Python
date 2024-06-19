@@ -1,16 +1,15 @@
 
 from z3 import *
-from abc import abstractmethod
 from typing import Callable, Dict, Tuple
 
-from CvRDTs.Tables.Element import Element
 from CvRDTs.Tables.PK import PK
-from CvRDTs.Tables.Table import Table
-from CvRDTs.Time.Time import Time
+from CvRDTs.Tables.Element import Element
 from CvRDTs.Tables.DWFlags import DWFlags
+from CvRDTs.Tables.Table import Table
+
+from CvRDTs.Time.Time import Time
 from CvRDTs.Tables.Flags_Constants import Status, Version
 from PROOF_PARAMETERS import BEFORE_FUNCTION_TIME_TYPE, MAX_TABLES_SIZE_TO_PROVE 
-
 
 
 
@@ -21,50 +20,6 @@ class DWTable(Table):
     def __init__(self, elements: Dict[PK, Tuple[DWFlags, Element]], before: Callable[[Time, Time], bool]): 
         super().__init__(elements, before)
 
-    
-    def reachable(self) -> BoolRef : 
-        '''for all elements in elements.values() check if they respect the conditions'''
-        return And(*[
-            And(
-                # check flags
-                elem[0].reachable(),
-                elem[0].flag != Status.DELETED,
-                len(elem[0].fk_versions) == self.getNumFKs(),
-                # check values
-                elem[1].reachable()
-            ) for elem in self.elements.values()
-        ])
-
-
-    def equals(self, other: 'DWTable') -> BoolRef:
-        '''for all elements in zip (this values(), that values()), check if they are equal'''
-        return And(
-            self.before == other.before,
-            And(*[
-                And(
-                    e1[0].equals(e2[0]),
-                    e1[1].equals(e2[1])
-                ) for (e1, e2) in zip(self.elements.values(), other.elements.values())
-            ])
-        )
-
-    def __eq__(self, other: 'DWTable') -> BoolRef:
-        '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.'''
-        return And(
-            self.before == other.before,
-            And(*[
-                And(
-                    e1[0].__eq__(e2[0]),
-                    e1[1].__eq__(e2[1])
-                ) for (e1, e2) in zip(self.elements.values(), other.elements.values())
-            ])
-        )
-
-
-    def compare(self, other: 'DWTable') -> BoolRef:
-        '''for all elements in zip (this values(), that values()), check if they are comparable'''
-        return And(*[And(e1[0].compare(e2[0]), e1[1].compare(e2[1])) for (e1, e2) in zip(self.elements.values(), other.elements.values())])
-
     def compatible(self, other: 'DWTable') -> BoolRef:
         '''for all elements in zip (this values(), that values()), check if they are compatible.
             (and to reduce search space for z3, we add some assumptions before)'''
@@ -73,8 +28,77 @@ class DWTable(Table):
             # TODO: voltar a fazer os assumptions
             # self.beforeAssumptions(),
             # self.mergeValuesAssumptions(),
+            # we use zip which iterate over the map without any order and without matching keys, but it's enough to check if the elements are compatible, they don't need to be the same one. And also if one table is bigger than the other, we don't need to check the rest of the elements.
             And(*[And(e1[0].compatible(e2[0]), e1[1].compatible(e2[1])) for (e1, e2) in zip(self.elements.values(), other.elements.values())])
         )
+    
+    def reachable(self) -> BoolRef : 
+        '''for all elements in elements.values() check if they respect the conditions'''
+        return And(*[And(   # check PK
+                            pk.reachable(),
+                            # check flags
+                            elem[0].reachable(),
+                            elem[0].flag != Status.DELETED,
+                            len(elem[0].fk_versions) == self.getNumFKs(),
+                            # check values
+                            elem[1].reachable()
+                        ) for pk, elem in self.elements.items()
+                    ])
+
+    
+    def __eq__(self, other: 'DWTable') -> BoolRef:
+        ''' Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.
+            @Pre: self.compatible(other)'''
+        booleans = []
+        union_keys = set(self.elements.keys()).union(other.elements.keys())
+        intersection_keys = set(self.elements.keys()).intersection(other.elements.keys())
+        if len(union_keys) != len(intersection_keys):
+            return False
+        for pk in intersection_keys:
+            e1 = self.elements[pk]
+            e2 = other.elements[pk]
+            booleans.append(And(e1[0] == e2[0], e1[1] == e2[1]))
+        return And(And(*booleans), self.before == other.before)
+    
+    def equals(self, other: 'DWTable') -> BoolRef:
+        ''' for all elements in zip (this values(), that values()), check if they are equal
+            @Pre: self.compatible(other)'''
+        union_keys = set(self.elements.keys()).union(other.elements.keys())
+        intersection_keys = set(self.elements.keys()).intersection(other.elements.keys())
+        if len(union_keys) != len(intersection_keys):
+            return False
+        booleans = []
+        for pk in intersection_keys:
+            e1 = self.elements[pk]
+            e2 = other.elements[pk]
+            booleans.append(And(e1[0].equals(e2[0]), e1[1].equals(e2[1])))
+        return And(And(*booleans), self.before == other.before)
+        
+
+    def compare(self, other: 'DWTable') -> BoolRef:
+        ''' Returns True if `self`<=`that`.
+            for all elements in zip (this values(), that values()), check if they are comparable'''
+        # TODO: mesmo que equals
+        return And(*[And(e1[0].compare(e2[0]), e1[1].compare(e2[1])) for (e1, e2) in zip(self.elements.values(), other.elements.values())])
+
+    def merge(self, other: 'DWTable'):
+        '''for each PK in maps, choose the element with bigger version, else merge them, or if that PK is present only in one map, so keep it.'''
+        # we can't use a simple zip because we need to merge elements with the same PK, and not the same index in the list. So we need to iterate over the keys of the maps: intersection_keys we know are in both maps, and the rest of the keys are in only one map.
+        merged_elems = {}
+        intersection_keys = set(self.elements.keys()).intersection(other.elements.keys())
+        for pk in intersection_keys:
+            e1 = self.elements.get(pk)
+            e2 = other.elements.get(pk)
+            merged_elem = e1[1].merge_with_version(e2[1], e1[0].version, e2[0].version)
+            merged_flags = e1[0].merge(e2[0])
+            merged_elems[pk] = (merged_flags, merged_elem)
+        for pk in set(self.elements.keys()).union(other.elements.keys()).difference(intersection_keys):
+            if pk in self.elements:
+                merged_elems[pk] = self.elements[pk]
+            else:
+                merged_elems[pk] = other.elements[pk]       
+        return self.copy(self.elements)
+
 
     # def beforeAssumptions(self):
     #     t1, t2, t3 = Ints('t1 t2 t3')
@@ -85,7 +109,6 @@ class DWTable(Table):
     #     )
 
     
-
     # def mergeValuesAssumptions(self):
     #     v1, v2, v3 = V, V, V
     #     return And(
@@ -93,26 +116,6 @@ class DWTable(Table):
     #         ForAll([v1, v2], v1.merge(v2) == v2.merge(v1)),
     #         ForAll([v1, v2, v3], v1.merge(v2).merge(v3) == v1.merge(v2.merge(v3)))
     #     )
-
-    def merge(self, other: 'DWTable'):
-        '''for each PK in maps, choose the element with bigger version, else merge them, or if that PK is present only in one map, so keep it.'''
-        merged_elems = {}
-        for pk in set(self.elements.keys()).union(other.elements.keys()):
-            e1 = self.elements.get(pk)
-            e2 = other.elements.get(pk)
-            if e1 and e2: # if both elements exist, keep the one with the highest version, or merge them
-                if is_true(e1[0].version > e2[0].version):
-                    merged_elems[pk] = e1
-                elif is_true(e2[0].version > e1[0].version):
-                    merged_elems[pk] = e2
-                else:
-                    merged_elems[pk] = (e1[0].merge(e2[0]), e1[1].merge(e2[1]))
-            elif e1: # e2 is None
-                merged_elems[pk] = e1
-            elif e2: # e1 is None
-                merged_elems[pk] = e2
-        self.setFlag(pk, Status.VISIBLE)
-        return self.copy(merged_elems)
 
 
     def getVersion(self, pk: PK) -> Int:
@@ -144,7 +147,6 @@ class DWTable(Table):
             flag1_args, flag2_args, flag3_args, flag_vars_for_1_instance, flag_args_for_2_instances, flag_args_for_3_instances = DWFlags.getArgs(str(i) + "_DWTab_" + extra_id, elem.number_of_FKs)
             
             elements1[elem1.getPK()] = (DWFlags(*flag1_args), elem1)
-            exit()
             elements2[elem2.getPK()] = (DWFlags(*flag2_args), elem2)
             elements3[elem3.getPK()] = (DWFlags(*flag3_args), elem3)
 

@@ -34,6 +34,15 @@ class LamportClock(CvRDT['LamportClock']):
     def merge(self, that: 'LamportClock') -> 'LamportClock':
         return self.sync(that)
 
+    def merge_with_version(self, that: 'LamportClock', this_version: int, that_version: int) -> 'LamportClock':
+        merged_replica = If(this_version > that_version, self.replica, 
+                            If (that_version > this_version, that.replica,
+                                If (self.greater_or_equal(that), self.replica, that.replica)))
+        merged_counter = If(this_version > that_version, self.counter,
+                            If (that_version > this_version, that.counter,
+                                If (self.greater_or_equal(that), self.counter, that.counter)))
+        return LamportClock(merged_replica, merged_counter)
+
 
     ########################################################################
     ################       LamportClock methods       ######################

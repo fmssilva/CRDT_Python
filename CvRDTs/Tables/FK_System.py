@@ -19,9 +19,15 @@ class FK_System(CvRDT['FK_System']):
         self.ref_tables = ref_tables # the simple tables to which the element references; example Album has a FK to ArtistTable
         self.ref_FK_Systems = ref_FK_Systems # the FK_Systems to which the element references; example Album has a FK to Country_FK_System, and that country has a FK to Continent_FK_System
     
-    @abstractmethod
-    def merge(self, that: 'FK_System') -> 'FK_System':
-        pass
+    def compatible(self, that: 'FK_System') -> BoolRef:
+
+        # we use zip to iterate over the list for us to make sure that each table are in the same position in the list
+        return And(
+            self.main_table.compatible(that.main_table),
+            And(*[ref_table.compatible(that.ref_table) for ref_table, that.ref_table in zip(self.ref_tables, that.ref_tables)]),
+            And(*[ref_FK_System.compatible(that.ref_FK_System) for ref_FK_System, that.ref_FK_System in zip(self.ref_FK_Systems, that.ref_FK_Systems)])
+        )
+    
 
     def reachable(self) -> BoolRef:
         return And(
@@ -29,35 +35,39 @@ class FK_System(CvRDT['FK_System']):
             And(*[ref_table.reachable() for ref_table in self.ref_tables]),
             And(*[ref_FK_System.reachable() for ref_FK_System in self.ref_FK_Systems])
         )
-  
-    def equals(self, other: 'FK_System') -> BoolRef:
-        return And(
-            self.main_table.equals(other.main_table),
-            And(*[ref_table.equals(other.ref_table) for ref_table, other.ref_table in zip(self.ref_tables, other.ref_tables)]),
-            And(*[ref_FK_System.equals(other.ref_FK_System) for ref_FK_System, other.ref_FK_System in zip(self.ref_FK_Systems, other.ref_FK_Systems)])
-        )
-    
+
+
     def __eq__(self, other: 'FK_System') -> BoolRef:
         '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.'''
         return And(
-            self.main_table.pure_equals(other.main_table),
-            And(*[ref_table.__eq__(other.ref_table) for ref_table, other.ref_table in zip(self.ref_tables, other.ref_tables)]),
-            And(*[ref_FK_System.__eq__(other.ref_FK_System) for ref_FK_System, other.ref_FK_System in zip(self.ref_FK_Systems, other.ref_FK_Systems)])
+            self.same_number_of_tables(other), # we need to check if sizes are the same, so then when iterating with zip, we don't leave tables unchecked
+            self.main_table == other.main_table,
+            And(*[self_ref_table == other_ref_table for self_ref_table, other_ref_table in zip(self.ref_tables, other.ref_tables)]),
+            And(*[self_ref_FK_System == other_ref_FK_System for self_ref_FK_System, other_ref_FK_System in zip(self.ref_FK_Systems, other.ref_FK_Systems)])
         )
 
-    def compare(self, that: 'FK_System') -> BoolRef:
+    def equals(self, other: 'FK_System') -> BoolRef:
         return And(
-            self.main_table.compare(that.main_table),
-            And(*[ref_table.compare(that.ref_table) for ref_table, that.ref_table in zip(self.ref_tables, that.ref_tables)]),
-            And(*[ref_FK_System.compare(that.ref_FK_System) for ref_FK_System, that.ref_FK_System in zip(self.ref_FK_Systems, that.ref_FK_Systems)])
+            self.same_number_of_tables(other), # we need to check if sizes are the same, so then when iterating with zip, we don't leave tables unchecked
+            self.main_table.equals(other.main_table),
+            And(*[self_ref_table.equals(other_ref_table) for self_ref_table, other_ref_table in zip(self.ref_tables, other.ref_tables)]),
+            And(*[self_ref_FK_System.equals(other_ref_FK_System) for self_ref_FK_System, other_ref_FK_System in zip(self.ref_FK_Systems, other.ref_FK_Systems)])
         )
     
-    def compatible(self, that: 'FK_System') -> BoolRef:
+
+    def compare(self, other: 'FK_System') -> BoolRef:
         return And(
-            self.main_table.compatible(that.main_table),
-            And(*[ref_table.compatible(that.ref_table) for ref_table, that.ref_table in zip(self.ref_tables, that.ref_tables)]),
-            And(*[ref_FK_System.compatible(that.ref_FK_System) for ref_FK_System, that.ref_FK_System in zip(self.ref_FK_Systems, that.ref_FK_Systems)])
+            self.same_number_of_tables(other), # we need to check if sizes are the same, so then when iterating with zip, we don't leave tables unchecked
+            self.main_table.compare(other.main_table),
+            And(*[self_ref_table.compare(other_ref_table) for self_ref_table, other_ref_table in zip(self.ref_tables, other.ref_tables)]),
+            And(*[self_ref_FK_System.compare(other_ref_FK_System) for self_ref_FK_System, other_ref_FK_System in zip(self.ref_FK_Systems, other.ref_FK_Systems)])
         )
+    
+
+    @abstractmethod
+    def merge(self, that: 'FK_System') -> 'FK_System':
+        pass
+
     
     def ref_integrity_holds_elem(self, pk: PK) -> BoolRef:
         elem = self.main_table.elements.get(pk)
@@ -65,6 +75,12 @@ class FK_System(CvRDT['FK_System']):
             return False 
         # TODO: dp implementar tb UW e fazer aqui um if a distinguir entre DW e UW
         return self.has_visible_fks_versions(elem)
+
+    def same_number_of_tables(self, other: 'FK_System') -> BoolRef:
+        return And(
+            len(self.ref_tables) == len(other.ref_tables),
+            len(self.ref_FK_Systems) == len(other.ref_FK_Systems)
+        )
 
 
     #######################################################

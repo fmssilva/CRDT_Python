@@ -40,8 +40,7 @@ class LWWRegister(Generic[V], CvRDT['LWWRegister[V]']):
         stamp = self.stamp.getGreateOrEqualStamp(that.stamp)
         return LWWRegister(merged_value, stamp)
 
-
-
+    
     ########################################################################
     ################       LWWRegister methods       ######################
 
@@ -51,6 +50,13 @@ class LWWRegister(Generic[V], CvRDT['LWWRegister[V]']):
     def assign(self, value: V, timestamp: 'LamportClock') -> 'LWWRegister[V]':
         return LWWRegister(value, timestamp)
 
+
+    def merge_with_version(self, that: 'LWWRegister[V]', this_version: int, that_version: int) -> 'LWWRegister[V]':
+        merged_value = If(this_version > that_version, self.value, 
+                          If (that_version > this_version, that.value,
+                                If (self.stamp.greater_or_equal(that.stamp), self.value, that.value)))
+        merged_stamp = self.stamp.merge_with_version(that.stamp, this_version, that_version)
+        return LWWRegister(merged_value, merged_stamp)
 
     ########################################################################
     ################       Proofs Helper Method       ######################

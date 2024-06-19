@@ -39,7 +39,7 @@ class AlbPK(PK):
 
 
 ##############################################################
-######################  ART   ELEM  ##########################
+######################  ALB   ELEM  ##########################
 
 class Alb(Element, CvRDT['Alb']):
     '''A class to represent an Alb. It has 3 attributes: albPK, artFK, year and price.'''

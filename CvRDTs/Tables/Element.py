@@ -1,4 +1,5 @@
 
+from abc import abstractmethod
 from z3 import *
 
 from typing import Dict, List, TypeVar
@@ -14,33 +15,45 @@ class Element:
     def __init__(self, elem_args):
         self.elem_args = elem_args
 
-    def __eq__(self, other: 'Element') -> BoolRef:
-        '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.'''
-        return And(*[thisArg.__eq__(thatArg) for thisArg, thatArg in zip (self.elem_args, other.elem_args)])
-    
-    def equals(self, other: 'Element') -> BoolRef:
-        '''return the equality of the given Element with the current Element.'''
-        return And(*[thisArg.equals(thatArg) for thisArg, thatArg in zip (self.elem_args, other.elem_args)])
-
-    def compare(self, other: 'Element') -> BoolRef:
-        # TODO - mas não é preciso porque fazemos override ao equals
-        return False
-
-
     def compatible(self, other: 'Element') -> BoolRef:
         '''return the compatibility of the given Element with the current Element.'''
         booleans = []
+        # we use zip to enforce that each arg is in the same position in both elements
         for thisArg, thatArg in zip(self.elem_args, other.elem_args):
             if isinstance(thisArg, PK): # PKs and FKs must be equal
                 booleans.append(thisArg.equals(thatArg))
             else:
                 booleans.append(thisArg.compatible(thatArg))
         return And(*booleans)
+    
+    @abstractmethod
+    def reachable(self) -> BoolRef:
+        '''Each Element must verify the CHECK constraints of its concrete attributes.'''
+        pass
 
+    def __eq__(self, other: 'Element') -> BoolRef:
+        ''' Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.
+            @Pre: self.compatible(other)'''
+            # we use zip to enforce that each arg is in the same position in both elements
+        return And(*[thisArg.__eq__(thatArg) for thisArg, thatArg in zip (self.elem_args, other.elem_args)])
+    
+    def equals(self, other: 'Element') -> BoolRef:
+        ''' return the equality of the given Element with the current Element.
+            @Pre: self.compatible(other)'''
+            # we use zip to enforce that each arg is in the same position in both elements
+        return And(*[thisArg == thatArg for thisArg, thatArg in zip (self.elem_args, other.elem_args)])
+
+    def compare(self, other: 'Element') -> BoolRef:
+        '''return the comparison of the given Element with the current Element.'''
+        # TODO - but we are overriding equals, so we don't need this method
+        return False
+    
 
     def merge(self, other: 'Element') -> 'Element':
-        '''return the merge of the given Element with the current Element.'''
+        '''return the merge of the given Element with the current Element.
+            @Pre: self.compatible(other)'''
         merged_args = []
+            # we use zip because we know self.compatible(other) and so we know each arg is in the right position of the list
         for thisArg, thatArg in zip(self.elem_args, other.elem_args):
             if isinstance(thisArg, PK): # PKs and FKs must be equal so we just take the first one
                 merged_args.append(thisArg)
@@ -48,6 +61,19 @@ class Element:
                 merged_args.append(thisArg.merge(thatArg))
         return type(self)(*merged_args)
     
+    def merge_with_version(self, other: 'Element', this_version: int, that_version: int) -> 'Element':
+        '''return the merge of the given Element with the current Element, considering the versions of the Elements.'''
+        merged_args = []
+        for thisArg, thatArg in zip(self.elem_args, other.elem_args):
+            if isinstance(thisArg, PK): # PKs and FKs must be equal so we just take the first one
+                merged_args.append(thisArg)
+            else: # merge the other attributes
+                merged_args.append(thisArg.merge_with_version(thatArg, this_version, that_version))
+
+
+
+
+
     def getPK(self):
         '''return the Primary Key of the Element.
             @Pre: the first attribute of the Element must be the Primary Key.'''
