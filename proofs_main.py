@@ -6,12 +6,12 @@ from typing import List
 from ConcreteTables.Country import CountriesTable, Country
 from ConcreteTables.Genre import Genre, GenreTable
 from ConcreteTables.Song import Song, SongsTable
-from CvRDTs.Examples.BiggerValue import TestClass
 from CvRDTs.Proofs_CvRDTs import Proofs_CvRDT
 from CvRDTs.Proofs_Ref_Integrity import Proofs_Ref_Integrity
 
 # import CvRDTs
 from CvRDTs.Counters.GCounter import GCounter
+from CvRDTs.Time.RealTime import RealTime
 from CvRDTs.Time.LamportClock import LamportClock
 from CvRDTs.Time.VersionVector import VersionVector
 from CvRDTs.Registers.LWWRegister import LWWRegister
@@ -35,11 +35,8 @@ from ConcreteTables.Alb import Alb, Alb_FK_System, AlbPK, AlbsTable
 
 CvRDT_TO_PROVE = 83
 CvRDT_options = { 
-        # Test Examples: 
-            0: TestClass,       # TESTS OK      (just some simple class with 2 inner object, each of them with List[int] args)
         # Time:
-            1: LamportClock,    # TESTS OK    (In practice it is not a CvRDT and doesn't converge, but if we adtapt the merge method so it passes all tests)
-            2: VersionVector,   # TODO
+            1: LamportClock, 2: VersionVector,  3: RealTime, # TESTS OK
         # Counters:
             11: GCounter,       # TODO
         # Registers:

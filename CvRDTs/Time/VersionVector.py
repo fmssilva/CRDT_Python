@@ -1,5 +1,5 @@
+
 from z3 import *
-from z3 import BoolRef
 
 from CvRDTs.CvRDT import CvRDT
 from PROOF_PARAMETERS import NUMBER_OF_REPLICAS 
@@ -9,47 +9,40 @@ class VersionVector(CvRDT['VersionVector']):
     def __init__(self, vector):
         self.vector = vector
     
-    def __eq__(self, that: 'VersionVector') -> BoolRef:
-        return And(self.vector == that.vector)
-            # self.reachable(), that.reachable(),
-            # self.compatible(that),
-            # *[a == b for a, b in zip(self.vector, that.vector)])
-        
     ########################################################################
     ###################         CvRDT methods         ######################
 
-    def equals (self, that: 'VersionVector') -> bool:
-        '''@Pre: self.compatible(that)'''
-        return self.compare(that), that.compare(self)
+    def compatible(self, that: 'VersionVector') -> BoolRef:
+        return And (self.networkSize() == that.networkSize()) # this checks if vectors have same size
 
+    def reachable(self):
+        return And( self.networkSize() == NUMBER_OF_REPLICAS,
+                    self.wellFormed()) 
+
+    def __eq__(self, that: 'VersionVector') -> BoolRef:
+        return And(self.vector == that.vector)
+        
+    # equals = this <= that && that <= this implemented in CvRDT class
+        
     def compare(self, that: 'VersionVector') -> BoolRef:
         return self.beforeOrEqual(that)
-    
-    def compatible(self, that: 'VersionVector') -> BoolRef:
-        return And (self.networkSize() == that.networkSize(),
-                    self.wellFormedWithSize(), that.wellFormedWithSize())
-    
-    def reachable(self):
-        '''@Pre: self.compatible(that)'''
-        return And( self.networkSize() == NUMBER_OF_REPLICAS,
-                    *[v >= 0 for v in self.vector])
     
     def merge(self, that: 'VersionVector') -> 'VersionVector':
         return self.sync(that)
 
     ######################################################################
     #################       VersionVector Operations       ###############
-
-    def networkSize(self) -> int:
-        return len(self.vector)
     
     def wellFormedWithSize(self) -> BoolRef:
         return And(len(self.vector) == NUMBER_OF_REPLICAS, self.wellFormed())
     
     def wellFormed(self) -> BoolRef:
+        ''' it's not necessary for vectors start in 0, but it's more logical and easier to understand. 
+            Also it's important that every idx has an int value and is not None.'''
         return And(*[And(isinstance(v, int), v >= 0) for v in self.vector])
     
-
+    def networkSize(self) -> int:
+        return len(self.vector)
 
     def increment(self, replica: int) -> 'VersionVector':
         new_vector = self.vector[:] # copy by value (shallow copy)
@@ -57,26 +50,32 @@ class VersionVector(CvRDT['VersionVector']):
         return VersionVector(new_vector)
 
     def before(self, that: 'VersionVector') -> BoolRef:
+        # we can use zip because we know each idx corresponds to the same replica, and also vectors have the same size so there will be no elements left in the longest vector)
         vectors = zip(self.vector, that.vector)
         return And(
             And(*[a <= b for a, b in vectors]), # all values <= 
             Or(*[a < b for a, b in vectors]))   # && exists at least one value <
 
     def beforeOrEqual(self, that: 'VersionVector') -> BoolRef:
-        return Or(self.vector == that.vector, self.before(that))
+        # return Or(self.vector == that.vector, self.before(that))
+        # to be more efficient we can check directly:
+        return And(*[a <= b for a, b in zip(self.vector, that.vector)])
 
     def after(self, that: 'VersionVector') -> BoolRef:
         return that.before(self)
 
     def afterOrEqual(self, that: 'VersionVector') -> BoolRef:
-        return Or(self.vector == that.vector, self.after(that))
+        # return Or(self.vector == that.vector, self.after(that))
+        # to be more efficient we can check directly:
+        return And(*[a >= b for a, b in zip(self.vector, that.vector)])
 
     def concurrent(self, that: 'VersionVector') -> BoolRef:
-        return And(self.vector != that.vector,
+        return And(self.vector != that.vector, # if they are equal, it represents the same state, so they are not concurrent
                    Not(self.before(that)),
                    Not (that.before(self)))
 
     def sync(self, that) -> 'VersionVector':
+        # we can use zip because we know each idx corresponds to the same replica, and also vectors have the same size so there will be no elements left in the longest vector)
         new_vector = [If(a >= b, a, b) for a, b in zip(self.vector, that.vector)]
         return VersionVector(new_vector)
 
