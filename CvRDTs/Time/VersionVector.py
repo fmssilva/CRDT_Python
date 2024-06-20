@@ -98,12 +98,12 @@ class VersionVector(CvRDT['VersionVector']):
         vector2 = [Int(f'vectVersion2_{i}_{extra_id}') for i in range(totReplicas)]
         vector3 = [Int(f'vectVersion3_{i}_{extra_id}') for i in range(totReplicas)]
 
-        vv1_args = [vector1]
-        vv2_args = [vector2]
-        vv3_args = [vector3]
+        vec1_args = [vector1]
+        vec2_args = [vector2]
+        vec3_args = [vector3]
 
-        z3_vars_for_1_instance = vector1
-        z3_vars_for_2_instances = vector1 + vector2
-        z3_vars_for_3_instances = vector1 + vector2 + vector3
+        z3_vars_for_instance1 = vector1
+        z3_vars_for_instance2 = vector2
+        z3_vars_for_instance3 = vector3
 
-        return vv1_args, vv2_args, vv3_args, z3_vars_for_1_instance, z3_vars_for_2_instances, z3_vars_for_3_instances
+        return vec1_args, vec2_args, vec3_args, z3_vars_for_instance1, z3_vars_for_instance2, z3_vars_for_instance3

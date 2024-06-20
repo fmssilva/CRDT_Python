@@ -33,20 +33,21 @@ from ConcreteTables.Alb import Alb, Alb_FK_System, AlbPK, AlbsTable
 #############  STEP 1 ->>       CHOOSE PROOF TO RUN        ##########
 '''Choose: a) The CvRDT to prove;   b) The type of proof to run.'''
 
-CvRDT_TO_PROVE = 83
+CvRDT_TO_PROVE = 11
 CvRDT_options = { 
         # Time:
-            1: LamportClock, 2: VersionVector,  3: RealTime, # TESTS OK
+            1: LamportClock,                    # TESTS OK (but this is not a CvRDT that converges. It always grows in each merge.)
+            2: VersionVector,  3: RealTime,     # TESTS OK
         # Counters:
-            11: GCounter,       # TODO
+            11: GCounter,                       # TESTS OK
         # Registers:
-            21: LWWRegister,    # TESTS OK
+            21: LWWRegister,                    # TESTS OK
         # Tables:
-            31: DWFlags,        # TESTS OK
-            41: Country, 42: CountriesTable,  # TESTS OK
-            51: Genre, 52: GenreTable,  # TESTS OK
-            61: Art, 62: ArtsTable,      # TESTS OK
-            71: Song, 72: SongsTable,    # TESTS OK
+            31: DWFlags,                        # TESTS OK
+            41: Country, 42: CountriesTable,    # TESTS OK
+            51: Genre, 52: GenreTable,          # TESTS OK
+            61: Art, 62: ArtsTable,             # TESTS OK
+            71: Song, 72: SongsTable,           # TESTS OK
             81: Alb, 82: AlbsTable, 83: Alb_FK_System # TESTS OK
 }
 
@@ -118,7 +119,9 @@ if __name__ == "__main__":
     print("\n\n\n\n\n\nStarting CvRDT proofs for ", CvRDT_to_prove.__name__)
     proofs = Proofs_CvRDT
     arg_for_getArgs = ["",100] if (CvRDT_to_prove == DWFlags or CvRDT_to_prove == VersionVector ) else [""]
-    instance1_args, instance2_args, instance3_args, vars_for_1_instance, vars_for_2_instances, vars_for_3_instances = CvRDT_to_prove.getArgs(*arg_for_getArgs)
+    instance1_args, instance2_args, instance3_args, vars_for_instance1, vars_for_instance2, vars_for_instance3 = CvRDT_to_prove.getArgs(*arg_for_getArgs)
+    vars_for_2_instances = vars_for_instance1 + vars_for_instance2
+    vars_for_3_instances = vars_for_instance1 + vars_for_instance2 + vars_for_instance3
     check_all_z3_variables_have_different_names(vars_for_3_instances)
 
     instance1 = CvRDT_to_prove(*instance1_args)
@@ -139,7 +142,7 @@ if __name__ == "__main__":
         print_proof("compatible_commutes", solver)
 
     if proof_to_run in ["merge_idempotent", "ALL"]:
-        solver.add(proofs.merge_idempotent(vars_for_1_instance, instance1))
+        solver.add(proofs.merge_idempotent(vars_for_instance1, instance1))
         print_proof("merge_idempotent", solver)
 
     if proof_to_run in ["merge_commutative", "ALL"]:

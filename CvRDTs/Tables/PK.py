@@ -42,9 +42,8 @@ class PK:
             pk2_args.append(Int(f'{arg}2_{extra_id}'))
             pk3_args.append(Int(f'{arg}3_{extra_id}'))
 
-        z3_vars_for_1_instance = pk1_args
-        z3_vars_for_2_instances = pk1_args + pk2_args
-        z3_vars_for_3_instances = pk1_args + pk2_args + pk3_args
+        z3_vars_for_instance1 = pk1_args
+        z3_vars_for_instance2 = pk2_args
+        z3_vars_for_instance3 = pk3_args
 
-        return pk1_args, pk2_args, pk3_args, z3_vars_for_1_instance, z3_vars_for_2_instances, z3_vars_for_3_instances
-    
+        return pk1_args, pk2_args, pk3_args, z3_vars_for_instance1, z3_vars_for_instance2, z3_vars_for_instance3

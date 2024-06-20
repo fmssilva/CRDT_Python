@@ -67,15 +67,15 @@ class LWWRegister(Generic[V], CvRDT['LWWRegister[V]']):
 
         # symbolic varibales for 3 different instances of LWWRegister
         value1, value2, value3 = Ints(f'LWW_value1_{extra_id} LWW_value2_{extra_id} LWW_value3_{extra_id}')
-        lc1_args, lc2_args, lc3_args, lc_vars_for_1_instance, lc_vars_for_2_instances, lc_vars_for_3_instances = LamportClock.getArgs("LWW_" + extra_id)
+        lc1_args, lc2_args, lc3_args, lc_vars_for_instance1, lc_vars_for_instance2, lc_vars_for_instance3 = LamportClock.getArgs("LWW_" + extra_id)
 
         lww1_args = [value1, LamportClock(*lc1_args)]
         lww2_args = [value2, LamportClock(*lc2_args)]
         lww3_args = [value3, LamportClock(*lc3_args)]
         
-        z3_vars_for_1_instance = [value1] + lc_vars_for_1_instance
-        z3_vars_for_2_instances = [value1, value2] + lc_vars_for_2_instances
-        z3_vars_for_3_instances = [value1, value2, value3] + lc_vars_for_3_instances
+        z3_vars_for_instance1 = [value1] + lc_vars_for_instance1
+        z3_vars_for_instance2 = [value2] + lc_vars_for_instance2
+        z3_vars_for_instance3 = [value3] + lc_vars_for_instance3
 
-        return lww1_args, lww2_args, lww3_args, z3_vars_for_1_instance, z3_vars_for_2_instances, z3_vars_for_3_instances
+        return lww1_args, lww2_args, lww3_args, z3_vars_for_instance1, z3_vars_for_instance2, z3_vars_for_instance3 
     

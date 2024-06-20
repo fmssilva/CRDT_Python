@@ -105,9 +105,9 @@ class DWFlags(CvRDT['DWFlags']):
         DWFlags2_args = [version2, flag2, fk_version2]
         DWFlags3_args = [version3, flag3, fk_version3]
 
-        z3_vars_for_1_instance = [version1, flag1] + fk_version1
-        z3_vars_for_2_instances = z3_vars_for_1_instance + [version2, flag2] + fk_version2
-        z3_vars_for_3_instances = z3_vars_for_2_instances + [version3, flag3] + fk_version3
+        z3_vars_for_instance1 = [version1, flag1] + fk_version1
+        z3_vars_for_instance2 = [version2, flag2] + fk_version2
+        z3_vars_for_instance3 = [version3, flag3] + fk_version3
         
-        return DWFlags1_args, DWFlags2_args, DWFlags3_args, z3_vars_for_1_instance, z3_vars_for_2_instances, z3_vars_for_3_instances
+        return DWFlags1_args, DWFlags2_args, DWFlags3_args, z3_vars_for_instance1, z3_vars_for_instance2, z3_vars_for_instance3 
     

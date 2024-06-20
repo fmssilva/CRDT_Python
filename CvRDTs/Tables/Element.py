@@ -69,9 +69,8 @@ class Element:
                 merged_args.append(thisArg)
             else: # merge the other attributes
                 merged_args.append(thisArg.merge_with_version(thatArg, this_version, that_version))
-
-
-
+        # TODO ???
+        return self.__class__(*merged_args)
 
 
     def getPK(self):
@@ -86,12 +85,12 @@ class Element:
             and also list of those variables to be used by Z3.'''
         
         elem1_args, elem2_args, elem3_args = [], [], []
-        z3_vars_for_1_instance, z3_vars_for_2_instances, z3_vars_for_3_instances = [], [], []
+        z3_vars_for_instance1, z3_vars_for_instance2, z3_vars_for_instance3 = [], [], []
 
         # symbolic variables for 3 different instances of each attribute of the given concrete Element
         for attrib_name, attrib_type in args.items():
             # getArgs of the attribute class
-            att1_args, att2_args, att3_args, att_vars_for_1_instance, att_vars_for_2_instances, att_vars_for_3_instances = attrib_type.getArgs(attrib_name + extra_id)
+            att1_args, att2_args, att3_args, att_vars_for_instance1, att_vars_for_instance2, att_vars_for_instance3 = attrib_type.getArgs(attrib_name + extra_id)
             
             # create an instance of the attribute and add to args the Element
             elem1_args.append(attrib_type(*att1_args)) # Element, like Album, has atributes which are object like (albPK: AlbPK, artFK: ArtPK, price: LWWRegister)... 
@@ -99,9 +98,9 @@ class Element:
             elem3_args.append(attrib_type(*att3_args)) # a similar concrete implementation is: AlbPK(*albPK1_args), or ArtPK(*artFK1_args), or LWWRegister(*year1_args), or LWWRegister(*price1_args)...
 
             # add the symbolic variables of the attribute to the list of symbolic variables of the Element
-            z3_vars_for_1_instance.extend(att_vars_for_1_instance)
-            z3_vars_for_2_instances.extend(att_vars_for_2_instances)
-            z3_vars_for_3_instances.extend(att_vars_for_3_instances)
+            z3_vars_for_instance1.extend(att_vars_for_instance1)
+            z3_vars_for_instance2.extend(att_vars_for_instance2)
+            z3_vars_for_instance3.extend(att_vars_for_instance3)
 
-        return elem1_args, elem2_args, elem3_args, z3_vars_for_1_instance, z3_vars_for_2_instances, z3_vars_for_3_instances
+        return elem1_args, elem2_args, elem3_args, z3_vars_for_instance1, z3_vars_for_instance2, z3_vars_for_instance3
 

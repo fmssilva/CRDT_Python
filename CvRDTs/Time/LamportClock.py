@@ -84,9 +84,8 @@ class LamportClock(CvRDT['LamportClock']):
         LC2_args = [replica2, counter2]
         LC3_args = [replica3, counter3]
 
-        z3_vars_for_1_instance = [replica1, counter1]
-        z3_vars_for_2_instances = [replica1, counter1, replica2, counter2]
-        z3_vars_for_3_instances = [replica1, counter1, replica2, counter2, replica3, counter3]
+        z3_vars_for_instance1 = [replica1, counter1]
+        z3_vars_for_instance2 = [replica2, counter2]
+        z3_vars_for_instance3 = [replica3, counter3]
 
-        return LC1_args, LC2_args, LC3_args, z3_vars_for_1_instance, z3_vars_for_2_instances, z3_vars_for_3_instances
-    
+        return LC1_args, LC2_args, LC3_args, z3_vars_for_instance1, z3_vars_for_instance2, z3_vars_for_instance3

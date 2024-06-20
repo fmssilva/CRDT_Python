@@ -12,47 +12,61 @@ class GCounter(CvRDT['GCounter']):
     def __init__(self, entries: List[Int]):
         self.entries = entries  
 
-    def increment(self, replica, value):
-        assert 0 <= replica < len(self.entries), "Replica index out of range"
-        self.entries[replica] += value
+    ############################################################################################################
+    ##############################  CvRDT methods  #########################################################
+
+    def compatible(self, that: 'GCounter') -> BoolRef:
+        return self.network_size() == that.network_size() # vectors with same length
+
+    def reachable(self) -> BoolRef:
+        return self.well_formed()
+
+    def __eq__(self, that):
+        '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.'''
+        return self.entries == that.entries
     
+    # equals implemented in CvRDT class
+    # checks if self <= that && that <= self
+    # but it's important to check in terms of sum of the vector and not each idx like version vector 
+    # TODO: yes??
+    
+    def compare(self, that):
+        return self.value() <= that.value()
+    
+    def merge(self, that):
+        '''@Pre: self.compatible(that)'''
+        # we use zip because we know self.compatible(that) and so we know each arg is in the right position of the list, and that the lists have the same length
+        merged_entries = [If(e1 > e2, e1, e2) for e1, e2 in zip(self.entries, that.entries)]
+        return GCounter(merged_entries)
+        
+    
+    ############################################################################################################
+    ##############################  GCounter methods  #########################################################
+
+    def network_size(self):
+        return len(self.entries)
+
+    def well_formed(self):
+        return And(*[And (isinstance(entry, int), entry >= 0) for entry in self.entries])
+
+    def value(self):
+        return self.compute_value()
+
     def compute_value(self, sum=0, replica=0):
         if 0 <= replica < len(self.entries):
             return self.compute_value(sum + self.entries[replica], replica + 1)
         else:
             return sum
 
-    def value(self):
-        return self.compute_value()
-
+    def increment(self, replica, value) -> None:
+        # TODO: need to check this
+        assert 0 <= replica < len(self.entries), "Replica index out of range"
+        self.entries[replica] += value
+        
     def value_of_entry(self, idx):
         assert 0 <= idx < len(self.entries), "GCounter - Entry index out of range"
         return self.entries[idx]
 
-    def well_formed(self):
-        return And(*[And (isinstance(entry, int), entry >= 0) for entry in self.entries])
-
-    def network_size(self):
-        return len(self.entries)
-
-    def merge(self, that):
-        assert self.network_size() == that.network_size(), "Network sizes do not match"
-        merged_entries = [If(e1 > e2, e1, e2) for e1, e2 in zip(self.entries, that.entries)]
-        return GCounter(merged_entries)
-        
-    def compare(self, that):
-        assert self.network_size() == that.network_size(), "Network sizes do not match"
-        return And(*[e1 <= e2 for e1, e2 in zip(self.entries, that.entries)])
-    
-    def __eq__(self, that):
-        '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.'''
-        return And(*[e1 == e2 for e1, e2 in zip(self.entries, that.entries)])
-
-    def compatible(self, that: 'GCounter') -> BoolRef:
-        return self.network_size() == that.network_size()
-
-    def reachable(self) -> BoolRef:
-        return And(*[entry >= 0 for entry in self.entries])
 
     @staticmethod
     def getArgs(extra_id: str,  totReplicas = 5):
@@ -67,9 +81,9 @@ class GCounter(CvRDT['GCounter']):
         GC2_args = [GC2_entries]
         GC3_args = [GC3_entries]
 
-        z3_vars_for_1_instance = GC1_entries
-        z3_vars_for_2_instances = GC1_entries + GC2_entries
-        z3_vars_for_3_instances = GC1_entries + GC2_entries + GC3_entries
-
-        return GC1_args, GC2_args, GC3_args, z3_vars_for_1_instance, z3_vars_for_2_instances, z3_vars_for_3_instances
+        z3_vars_for_instance1 = GC1_entries
+        z3_vars_for_instance2 = GC2_entries
+        z3_vars_for_instance3 = GC3_entries
+        
+        return GC1_args, GC2_args, GC3_args, z3_vars_for_instance1, z3_vars_for_instance2, z3_vars_for_instance3
     

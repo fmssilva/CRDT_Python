@@ -140,33 +140,31 @@ class DWTable(Table):
     def getArgs(extra_id: str, elem: Element):
         '''return symbolic all different variables for 3 different instances of a given concrete table, and also list of those variables to be used by Z3.'''
 
-        vars_for_1_instance, vars_for_2_instances, vars_for_3_instances = [], [], []
+        vars_for_instance1, vars_for_instance2, vars_for_instance3 = [], [], []
 
         elements1, elements2, elements3 = {}, {}, {}
         for i in range(MAX_TABLES_SIZE_TO_PROVE):  
-            elem1_args, elem2_args, elem3_args3, elem_vars_for_1_instance, elem_args_for_2_instances, elem_args_for_3_instances = elem.getArgs(str(i) + "_DWTab_" + extra_id)
+            elem1_args, elem2_args, elem3_args3, elem_vars_for_instance1, elem_args_for_instance2, elem_args_for_instance3 = elem.getArgs(str(i) + "_DWTab_" + extra_id)
             elem1, elem2, elem3 = elem(*elem1_args), elem(*elem2_args), elem(*elem3_args3)
             
-            flag1_args, flag2_args, flag3_args, flag_vars_for_1_instance, flag_args_for_2_instances, flag_args_for_3_instances = DWFlags.getArgs(str(i) + "_DWTab_" + extra_id, elem.number_of_FKs)
+            flag1_args, flag2_args, flag3_args, flag_vars_for_instance1, flag_args_for_instance2, flag_args_for_instance3 = DWFlags.getArgs(str(i) + "_DWTab_" + extra_id, elem.number_of_FKs)
             
             elements1[elem1.getPK()] = (DWFlags(*flag1_args), elem1)
             elements2[elem2.getPK()] = (DWFlags(*flag2_args), elem2)
             elements3[elem3.getPK()] = (DWFlags(*flag3_args), elem3)
 
-            vars_for_1_instance += elem_vars_for_1_instance + flag_vars_for_1_instance
-            vars_for_2_instances += elem_args_for_2_instances + flag_args_for_2_instances
-            vars_for_3_instances += elem_args_for_3_instances + flag_args_for_3_instances
+            vars_for_instance1 += elem_vars_for_instance1 + flag_vars_for_instance1
+            vars_for_instance2 += elem_args_for_instance2 + flag_args_for_instance2
+            vars_for_instance3 += elem_args_for_instance3 + flag_args_for_instance3
         
-
-        before_args1, before_args2, before_args3, before_args_forAll_1, before_args_forAll_2, before_args_forAll_3 = BEFORE_FUNCTION_TIME_TYPE.getBeforeFunArgs(extra_id+"art_T")
+        before_args1, before_args2, before_args3, before_args_for_instance1, before_args_for_instance2, before_args_for_instance3 = BEFORE_FUNCTION_TIME_TYPE.getBeforeFunArgs("_DWTab_"+extra_id)
 
         args1 = [elements1, *before_args1]
         args2 = [elements2, *before_args2]
         args3 = [elements3, *before_args3]
 
-        vars_for_1_instance += before_args_forAll_1
-        vars_for_2_instances += before_args_forAll_2
-        vars_for_3_instances += before_args_forAll_3
+        vars_for_instance1 += before_args_for_instance1
+        vars_for_instance2 += before_args_for_instance2
+        vars_for_instance3 += before_args_for_instance3
         
-        return args1, args2, args3, vars_for_1_instance, vars_for_2_instances, vars_for_3_instances
-
+        return args1, args2, args3, vars_for_instance1, vars_for_instance2, vars_for_instance3

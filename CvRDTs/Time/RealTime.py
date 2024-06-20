@@ -50,17 +50,17 @@ class RealTime(Time, CvRDT['RealTime']):
         # Symbolic variables
         value1, value2, value3 = Ints(f'IntTime1_{extra_id} IntTime2_{extra_id} IntTime3_{extra_id}')
         
-        intTime1_args = [value1]
-        intTime2_args = [value2]
-        intTime3_args = [value3]
+        time1_args = [value1]
+        time2_args = [value2]
+        time3_args = [value3]
 
-        vars_for_1_instance = [value1]
-        vars_for_2_instances = [value1, value2]
-        vars_for_3_instances = [value1, value2, value3]
+        vars_for_instance1 = [value1]
+        vars_for_instance2 = [value2]
+        vars_for_instance3 = [value3]
 
-        return intTime1_args, intTime2_args, intTime3_args, vars_for_1_instance, vars_for_2_instances, vars_for_3_instances
-        
+        return time1_args, time2_args, time3_args, vars_for_instance1, vars_for_instance2, vars_for_instance3
     
+
     @staticmethod
     def getBeforeFunArgs(extra_id: str):
         '''return 3 symbolic functions of before: (Int, Int) -> Bool; and also the needed symbolic varibales for all 3 functions.'''
@@ -73,11 +73,10 @@ class RealTime(Time, CvRDT['RealTime']):
         before3_args = [Function(f'before3_{extra_id}', arg_type, arg_type, return_type)] 
 
         # Symbolic variables for the args of the functions
-        var1, var2, var3, var4, var5, var6 = Ints(f'IntTime1_{extra_id} IntTime2_{extra_id} IntTime3_{extra_id} IntTime4_{extra_id} IntTime5_{extra_id} IntTime6_{extra_id}')
+        bef1_var1, bef1_var2, bef2_var1, bef2_var2, bef3_var1, bef3_var2 = Ints(f'RealTime1_before1_{extra_id} RealTime2_before1_{extra_id} RealTime1_before2_{extra_id} RealTime2_before2_{extra_id} RealTime1_before3_{extra_id} RealTime2_before3_{extra_id}')
                                                   
-        z3_vars_for_1_before_fun = [var1, var2]
-        z3_vars_for_2_before_funs2 = [var1, var2, var3, var4]
-        z3_vars_for_3_before_funs = [var1, var2, var3, var4, var5, var6]
+        z3_vars_for_before1 = [bef1_var1, bef1_var2]
+        z3_vars_for_before2 = [bef2_var1, bef2_var2]
+        z3_vars_for_before3 = [bef3_var1, bef3_var2]
 
-        return before1_args, before2_args, before3_args, z3_vars_for_1_before_fun, z3_vars_for_2_before_funs2, z3_vars_for_3_before_funs
-        
+        return before1_args, before2_args, before3_args, z3_vars_for_before1, z3_vars_for_before2, z3_vars_for_before3

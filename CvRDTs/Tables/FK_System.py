@@ -129,12 +129,12 @@ class FK_System(CvRDT['FK_System']):
             and also list of those variables to be used by Z3.'''
         
         syst1_args, syst2_args, syst3_args = [], [], []
-        z3_vars_for_1_instance, z3_vars_for_2_instances, z3_vars_for_3_instances = [], [], []
+        z3_vars_for_instance1, z3_vars_for_instance2, z3_vars_for_instance3 = [], [], []
 
         # symbolic variables for 3 different instances of each table of the given concrete FK_System
         for table_name, table_type in tables.items():
             # get args for the table
-            tab1_args, tab2_args, tab3_args, tab_vars_for_1_instance, tab_vars_for_2_instances, tab_vars_for_3_instances = table_type.getArgs(table_name + extra_id)
+            tab1_args, tab2_args, tab3_args, tab_vars_for_instance1, tab_vars_for_instance2, tab_vars_for_instance3 = table_type.getArgs(table_name + extra_id)
 
             # create an instance of that table and add to args of the FK_System
             syst1_args.append(table_type(*tab1_args)) # FK_System like Album_FK_System has tables as args, so here we instanciate those tables
@@ -142,26 +142,26 @@ class FK_System(CvRDT['FK_System']):
             syst3_args.append(table_type(*tab3_args))
 
             # add the symbolic variables of the table to the list of symbolic variables of the FK_System
-            z3_vars_for_1_instance += tab_vars_for_1_instance
-            z3_vars_for_2_instances += tab_vars_for_2_instances
-            z3_vars_for_3_instances += tab_vars_for_3_instances
+            z3_vars_for_instance1 += tab_vars_for_instance1
+            z3_vars_for_instance2 += tab_vars_for_instance2
+            z3_vars_for_instance3 += tab_vars_for_instance3
         
-        return syst1_args, syst2_args, syst3_args, z3_vars_for_1_instance, z3_vars_for_2_instances, z3_vars_for_3_instances
+        return syst1_args, syst2_args, syst3_args, z3_vars_for_instance1, z3_vars_for_instance2, z3_vars_for_instance3
     
     @staticmethod
     def get_RefIntProof_Args(extra_id: str, concrete_FK_System: 'FK_System', concrete_elem_PK: 'PK'):
         '''return symbolic all different variables for 2 different instances of Alb_FK_System and 1 instance of AlbPK, and also list of those variables to be used by Z3.'''
 
         # symbolic args and variables for 2 instances of FK_System
-        FK1_args, FK2_args, _, _, FK_vars_for_2_instances, _ = concrete_FK_System.getArgs(extra_id)
+        FK1_args, FK2_args, _, FK_vars_for_instance1, FK_vars_for_instance2, _ = concrete_FK_System.getArgs(extra_id)
 
         # symbolic args and variables for 1 instance of AlbPK
-        elemPK_args, _, _, elemPK_vars_for_1_instance, _, _ = concrete_elem_PK.getArgs("FK_System"+extra_id)
+        elemPK1_args, _, _, elemPK_vars_for_instance1, _, _ = concrete_elem_PK.getArgs("FK_System"+extra_id)
         
         # List of all symbolic variables for 2 instances of Alb_FK_System and 1 instance of AlbPK
-        z3_vars_for_2_instances = FK_vars_for_2_instances + elemPK_vars_for_1_instance
+        z3_vars_for_2_FK_instances_and_1_PK_instance = FK_vars_for_instance1 + FK_vars_for_instance2 + elemPK_vars_for_instance1
 
-        return FK1_args, FK2_args, elemPK_args, z3_vars_for_2_instances
+        return FK1_args, FK2_args, elemPK1_args, z3_vars_for_2_FK_instances_and_1_PK_instance
 
             
     

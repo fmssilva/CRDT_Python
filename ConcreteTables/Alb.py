@@ -49,7 +49,7 @@ class Alb(Element, CvRDT['Alb']):
     '''Number of foreign keys in this class. static, common to all instances of the class.'''
     
     def __init__(self, albPK: 'AlbPK', artFK: 'ArtPK', songA:'SongPK', songB:'SongPK', songC:'SongPK', year: 'LWWRegister[Int]', price: 'LWWRegister[Int]'):
-        super().__init__([albPK, artFK, year, price])
+        super().__init__([albPK, artFK, songA, songB, songC, year, price])
         self.albPK = albPK
         self.artFK = artFK
         self.songA = songA
