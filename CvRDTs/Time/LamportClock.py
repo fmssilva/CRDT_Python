@@ -2,9 +2,9 @@
 from z3 import *
 from z3 import BoolRef
 
-from CvRDTs.CvRDT import CvRDT
+from CvRDTs.Time.Time import Time
 
-class LamportClock(CvRDT['LamportClock']):
+class LamportClock(Time):
     '''Lamport Clock does not converge, we always increment the counter.
         Nevertheless, we extend CvRDT so we can test some propoerties with Z3.
         CvRDT accepts a generic type T, which we here bind to LamportClock.'''
@@ -25,6 +25,11 @@ class LamportClock(CvRDT['LamportClock']):
     def __eq__(self, that: 'LamportClock') -> BoolRef:
         '''@Pre: self.compatible(that)'''
         return And(self.replica == that.replica, self.counter == that.counter)
+
+    def __hash__(self) -> int:
+        '''because we implement __eq__, we must implement __hash__ to be able to use LamportClock as a key in a dictionary.'''
+        return hash((self.replica, self.counter))
+    
 
     # equals is as defined in CvRDT
 
@@ -59,6 +64,9 @@ class LamportClock(CvRDT['LamportClock']):
     
     def smaller(self, that: 'LamportClock') -> BoolRef: # impose a total order using the replica id
         return Or(And(self.counter == that.counter, self.replica < that.replica), self.counter < that.counter)
+
+    def before(self, other: 'LamportClock') -> bool:
+        return self.smaller(other)
 
     def smaller_or_equal(self, that: 'LamportClock') -> BoolRef:
         return Or(self == that, self.smaller(that))

@@ -2,15 +2,12 @@
 from z3 import *
 from typing import List
 
-from CvRDTs.CvRDT import CvRDT
-from CvRDTs.Tables.Flags_Constants import Status, Version
+from CvRDTs.Tables.Flags import Flags, Status, Version
 
-class DWFlags(CvRDT['DWFlags']):
-    '''DWFlags is a CvRDT that represents the flags of a table element.
-       It has a version, a flag and a list of foreign keys versions.
-       It extends CvRDT which accepts a generic type T, which we here bind to DWFlags.'''
+class DWFlags(Flags):
 
     def __init__(self, version: int, flag: int, fk_versions: List[int]):
+        super().__init__(version, flag)
         self.version = version
         self.flag = flag
         self.fk_versions = fk_versions
@@ -33,22 +30,15 @@ class DWFlags(CvRDT['DWFlags']):
             And(*[fk1 == fk2 for fk1, fk2 in zip(self.fk_versions, that.fk_versions)])
         )
 
-    # def equals(self, that: 'DWFlags') -> BoolRef:
-    #     ''' When comparing CvRDT objects, we want to check if they are equal according to the `compare` method.
-    #           CvRDT equals: return True if (this <= that && that <= this).
-    #         But for better efficiency we can override equals directly and check if each field (this == that), instead of testing (this <= that && that <= this).'''
-    #     return self.__eq__(that)
+    def equals(self, that: 'DWFlags') -> BoolRef:
+        ''' override equals from CvRDT:
+                - for better efficiency: we check if this == that, instead of checking if this <= that and that <= this.
+                - to avoid confusing with the compare method, when checking if self.flag <= that.flag, which might give errors if we change the numbers of the flags in the future.'''
+        return self.__eq__(that)
 
     def compare(self, that: 'DWFlags') -> BoolRef:
-        '''Returns True if `self`<=`that`.
-            If "equals" is implemented directly, this compare will not be used.'''
-        return And(
-            self.version <= that.version,
-            # TODO: convém VISIBLE ser menor que DELETED?
-            self.flag >= that.flag,
-            And(*[fk1 <= fk2 for fk1, fk2 in zip(self.fk_versions, that.fk_versions)])
-        )
-
+        ''' we override equals from CvRDT so this is not used'''
+        return False
 
     def merge(self, that: 'DWFlags') -> 'DWFlags':
         # If different versions -> choose the bigger one

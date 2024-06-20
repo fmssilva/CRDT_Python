@@ -11,6 +11,9 @@ from CvRDTs.Proofs_Ref_Integrity import Proofs_Ref_Integrity
 
 # import CvRDTs
 from CvRDTs.Counters.GCounter import GCounter
+from CvRDTs.Registers.MVRegister import MVRegister
+from CvRDTs.Tables.FK_System import FK_System
+from CvRDTs.Tables.Table import Table
 from CvRDTs.Time.RealTime import RealTime
 from CvRDTs.Time.LamportClock import LamportClock
 from CvRDTs.Time.VersionVector import VersionVector
@@ -25,7 +28,10 @@ from ConcreteTables.Alb import Alb, Alb_FK_System, AlbPK, AlbsTable
 
 #####################################################################
 ############   STEP 1 ->>  CHOOSE PROOF PARAMETERS        ###########
-'''In PROOF_PARAMETERS.py file, set the proof parameters to use.'''
+
+MAX_TABLES_SIZE_TO_PROVE = 100          # Some proofs don't terminate, so one solution is to limite the size of tables to test and accept that limitation
+
+DEFAULT_TIME = RealTime                 # choose the "Time" to be used by the tables in the before function
 
 
 
@@ -33,15 +39,16 @@ from ConcreteTables.Alb import Alb, Alb_FK_System, AlbPK, AlbsTable
 #############  STEP 1 ->>       CHOOSE PROOF TO RUN        ##########
 '''Choose: a) The CvRDT to prove;   b) The type of proof to run.'''
 
-CvRDT_TO_PROVE = 11
+CvRDT_TO_PROVE = 2
 CvRDT_options = { 
         # Time:
-            1: LamportClock,                    # TESTS OK (but this is not a CvRDT that converges. It always grows in each merge.)
+            1: LamportClock, # THIS IS NOT A CvRDT - It always grows in each merge.)
             2: VersionVector,  3: RealTime,     # TESTS OK
         # Counters:
             11: GCounter,                       # TESTS OK
         # Registers:
             21: LWWRegister,                    # TESTS OK
+            22: MVRegister,
         # Tables:
             31: DWFlags,                        # TESTS OK
             41: Country, 42: CountriesTable,    # TESTS OK
@@ -50,7 +57,6 @@ CvRDT_options = {
             71: Song, 72: SongsTable,           # TESTS OK
             81: Alb, 82: AlbsTable, 83: Alb_FK_System # TESTS OK
 }
-
 
 PROOF_TO_RUN = 1
 proofs_options = {  
@@ -78,6 +84,13 @@ proofs_options = {
 
 #############################################################
 #################       HELPER METHOD      ##################
+
+def getArgsForProof():
+    if CvRDT_to_prove == DWFlags:
+        return ["",MAX_TABLES_SIZE_TO_PROVE]
+    if issubclass(CvRDT_to_prove, Table) or issubclass(CvRDT_to_prove, FK_System):
+        return ["",MAX_TABLES_SIZE_TO_PROVE, DEFAULT_TIME]
+    return [""]
 
 def print_proof(proof_name, solver):
     res = solver.check()
@@ -117,8 +130,10 @@ if __name__ == "__main__":
     proof_to_run = proofs_options[PROOF_TO_RUN]
     
     print("\n\n\n\n\n\nStarting CvRDT proofs for ", CvRDT_to_prove.__name__)
+    
     proofs = Proofs_CvRDT
-    arg_for_getArgs = ["",100] if (CvRDT_to_prove == DWFlags or CvRDT_to_prove == VersionVector ) else [""]
+
+    arg_for_getArgs = getArgsForProof()    
     instance1_args, instance2_args, instance3_args, vars_for_instance1, vars_for_instance2, vars_for_instance3 = CvRDT_to_prove.getArgs(*arg_for_getArgs)
     vars_for_2_instances = vars_for_instance1 + vars_for_instance2
     vars_for_3_instances = vars_for_instance1 + vars_for_instance2 + vars_for_instance3
@@ -169,7 +184,8 @@ if __name__ == "__main__":
         print("\nStarting Ref_Integrity proofs for ", CvRDT_to_prove.__name__)
 
         proofs = Proofs_Ref_Integrity
-        FK1_args, FK2_args, albPK_args, vars_for_2_inst_of_FK_Syst_and_1_inst_of_its_PKs = CvRDT_to_prove.get_RefIntProof_Args("")
+        FK1_args, FK2_args, albPK_args, vars_for_2_inst_of_FK_Syst_and_1_inst_of_its_PKs = CvRDT_to_prove.get_RefIntProof_Args("",MAX_TABLES_SIZE_TO_PROVE, DEFAULT_TIME)
+
         check_all_z3_variables_have_different_names(vars_for_2_inst_of_FK_Syst_and_1_inst_of_its_PKs)
 
         fk_syst_instance1 = CvRDT_to_prove(*FK1_args)

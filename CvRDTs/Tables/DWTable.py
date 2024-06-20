@@ -8,8 +8,7 @@ from CvRDTs.Tables.DWFlags import DWFlags
 from CvRDTs.Tables.Table import Table
 
 from CvRDTs.Time.Time import Time
-from CvRDTs.Tables.Flags_Constants import Status, Version
-from PROOF_PARAMETERS import BEFORE_FUNCTION_TIME_TYPE, MAX_TABLES_SIZE_TO_PROVE 
+from CvRDTs.Tables.Flags import Status, Version
 
 
 
@@ -25,9 +24,6 @@ class DWTable(Table):
             (and to reduce search space for z3, we add some assumptions before)'''
         return And(
             self.before == other.before,
-            # TODO: voltar a fazer os assumptions
-            # self.beforeAssumptions(),
-            # self.mergeValuesAssumptions(),
             # we use zip which iterate over the map without any order and without matching keys, but it's enough to check if the elements are compatible, they don't need to be the same one. And also if one table is bigger than the other, we don't need to check the rest of the elements.
             And(*[And(e1[0].compatible(e2[0]), e1[1].compatible(e2[1])) for (e1, e2) in zip(self.elements.values(), other.elements.values())])
         )
@@ -99,24 +95,6 @@ class DWTable(Table):
                 merged_elems[pk] = other.elements[pk]       
         return self.copy(self.elements)
 
-
-    # def beforeAssumptions(self):
-    #     t1, t2, t3 = Ints('t1 t2 t3')
-    #     return And(
-    #         ForAll([t1], Not(self.before(t1, t1))),
-    #         ForAll([t1, t2], Implies(self.before(t1, t2), Not(self.before(t2, t1)))),
-    #         ForAll([t1, t2, t3], Implies(And(self.before(t1, t2), self.before(t2, t3)), self.before(t1, t3)))
-    #     )
-
-    
-    # def mergeValuesAssumptions(self):
-    #     v1, v2, v3 = V, V, V
-    #     return And(
-    #         ForAll([v1], v1.merge(v1) == v1),
-    #         ForAll([v1, v2], v1.merge(v2) == v2.merge(v1)),
-    #         ForAll([v1, v2, v3], v1.merge(v2).merge(v3) == v1.merge(v2.merge(v3)))
-    #     )
-
     def copy (self, newElements: Dict[PK, Tuple[DWFlags, Element]]) -> 'DWTable':
         '''return a new DWTable with the given elements.'''
         return self.__class__(newElements, self.before)
@@ -136,14 +114,17 @@ class DWTable(Table):
         return self.copy(self.elements)
 
 
+    ###############################################################
+    #####################  Methods for Proofs  ####################
+
     @staticmethod
-    def getArgs(extra_id: str, elem: Element):
+    def getArgs(extra_id: str, elem: Element, table_size: int, clock: Time ):
         '''return symbolic all different variables for 3 different instances of a given concrete table, and also list of those variables to be used by Z3.'''
 
         vars_for_instance1, vars_for_instance2, vars_for_instance3 = [], [], []
 
         elements1, elements2, elements3 = {}, {}, {}
-        for i in range(MAX_TABLES_SIZE_TO_PROVE):  
+        for i in range(table_size):  
             elem1_args, elem2_args, elem3_args3, elem_vars_for_instance1, elem_args_for_instance2, elem_args_for_instance3 = elem.getArgs(str(i) + "_DWTab_" + extra_id)
             elem1, elem2, elem3 = elem(*elem1_args), elem(*elem2_args), elem(*elem3_args3)
             
@@ -157,7 +138,7 @@ class DWTable(Table):
             vars_for_instance2 += elem_args_for_instance2 + flag_args_for_instance2
             vars_for_instance3 += elem_args_for_instance3 + flag_args_for_instance3
         
-        before_args1, before_args2, before_args3, before_args_for_instance1, before_args_for_instance2, before_args_for_instance3 = BEFORE_FUNCTION_TIME_TYPE.getBeforeFunArgs("_DWTab_"+extra_id)
+        before_args1, before_args2, before_args3, before_args_for_instance1, before_args_for_instance2, before_args_for_instance3 = clock.getBeforeFunArgs("DWTab_"+extra_id)
 
         args1 = [elements1, *before_args1]
         args2 = [elements2, *before_args2]

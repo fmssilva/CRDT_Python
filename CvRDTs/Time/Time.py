@@ -1,9 +1,11 @@
 
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+
+from CvRDTs.CvRDT import CvRDT
 
 
-class Time(ABC):
+class Time(CvRDT['Time']):
     '''Time is an abstract class defining the method that all concrete "clocks" must implement.'''
         
     @abstractmethod

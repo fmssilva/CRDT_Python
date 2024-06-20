@@ -68,16 +68,16 @@ class Song(Element, CvRDT['Song']):
 class SongsTable(DWTable):
     '''SongsTable extends DWTable.'''
 
-    def __init__(self, elements: Dict[SongPK, Tuple[DWFlags, Song]], before: Callable[[Time, Time], bool],):
+    def __init__(self, elements: Dict[SongPK, Tuple[DWFlags, Song]], before: Callable[[Time, Time], bool]):
         super().__init__(elements, before)
 
     def getNumFKs(self) -> int:
         return Song.number_of_FKs
 
     @staticmethod
-    def getArgs(extra_id: str):
+    def getArgs(extra_id: str, table_size: int, clock: Time):
         '''return symbolic all different variables for 3 different instances of SongsTable, and also list of those variables to be used by Z3.'''
-        return DWTable.getArgs(extra_id + "songsTab_", Song)
+        return DWTable.getArgs(extra_id + "songsTab_", Song, table_size, clock)
 
 
 

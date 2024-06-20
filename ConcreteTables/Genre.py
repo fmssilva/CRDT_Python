@@ -36,7 +36,7 @@ class GenrePK(PK):
 
 
 ##############################################################
-######################  SONG   ELEM  #########################
+######################  GENRE   ELEM  #########################
 
 class Genre(Element, CvRDT['Genre']):
     '''A class to represent an Genre.'''
@@ -67,16 +67,16 @@ class Genre(Element, CvRDT['Genre']):
 class GenreTable(DWTable):
     '''SongsTable extends DWTable.'''
 
-    def __init__(self, elements: Dict[GenrePK, Tuple[DWFlags, Genre]], before: Callable[[Time, Time], bool],):
+    def __init__(self, elements: Dict[GenrePK, Tuple[DWFlags, Genre]], before: Callable[[Time, Time], bool]):
         super().__init__(elements, before)
 
     def getNumFKs(self) -> int:
         return Genre.number_of_FKs
 
     @staticmethod
-    def getArgs(extra_id: str):
+    def getArgs(extra_id: str, table_size: int, clock: Time):
         '''return symbolic all different variables for 3 different instances of SongsTable, and also list of those variables to be used by Z3.'''
-        return DWTable.getArgs(extra_id + "genresTab_", Genre)
+        return DWTable.getArgs(extra_id + "genresTab_", Genre, table_size, clock)
 
 
 

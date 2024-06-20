@@ -1,12 +1,14 @@
 
+from typing import List
 from z3 import *
 
-from CvRDTs.CvRDT import CvRDT
-from PROOF_PARAMETERS import NUMBER_OF_REPLICAS 
+from CvRDTs.Time.Time import Time
 
-class VersionVector(CvRDT['VersionVector']):
+NUMBER_OF_REPLICAS = 3
+
+class VersionVector(Time):
     
-    def __init__(self, vector):
+    def __init__(self, vector: List[int]):
         self.vector = vector
     
     ########################################################################
@@ -21,7 +23,11 @@ class VersionVector(CvRDT['VersionVector']):
 
     def __eq__(self, that: 'VersionVector') -> BoolRef:
         return And(self.vector == that.vector)
-        
+
+    def __hash__(self) -> int:
+        '''because we implement __eq__, we must implement __hash__ to be able to use VersionVector as a key in a dictionary.'''
+        return hash(tuple(self.vector))
+    
     # equals = this <= that && that <= this implemented in CvRDT class
         
     def compare(self, that: 'VersionVector') -> BoolRef:
@@ -90,13 +96,13 @@ class VersionVector(CvRDT['VersionVector']):
     ########################################################################
     ###################         Helper methods         ######################
     @staticmethod
-    def getArgs(extra_id: str, totReplicas: int):
+    def getArgs(extra_id: str):
         '''return symbolic all different variables for 3 different instances of VersionVector, and also list of those variables to be used by Z3.'''
 
         # symbolic varibales for 3 different instances of VersionVector
-        vector1 = [Int(f'vectVersion1_{i}_{extra_id}') for i in range(totReplicas)]
-        vector2 = [Int(f'vectVersion2_{i}_{extra_id}') for i in range(totReplicas)]
-        vector3 = [Int(f'vectVersion3_{i}_{extra_id}') for i in range(totReplicas)]
+        vector1 = [Int(f'vectVersion1_{i}_{extra_id}') for i in range(NUMBER_OF_REPLICAS)]
+        vector2 = [Int(f'vectVersion2_{i}_{extra_id}') for i in range(NUMBER_OF_REPLICAS)]
+        vector3 = [Int(f'vectVersion3_{i}_{extra_id}') for i in range(NUMBER_OF_REPLICAS)]
 
         vec1_args = [vector1]
         vec2_args = [vector2]

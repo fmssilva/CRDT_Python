@@ -71,9 +71,9 @@ class CountriesTable(DWTable):
         return Country.number_of_FKs
         
     @staticmethod
-    def getArgs(extra_id: str):
+    def getArgs(extra_id: str, table_size: int, clock: Time):
         '''return symbolic all different variables for 3 different instances of CountriesTable, and also list of those variables to be used by Z3.'''
-        return DWTable.getArgs("countriesTab_" + extra_id, Country)
+        return DWTable.getArgs("countriesTab_" + extra_id, Country, table_size, clock)
     
 
 

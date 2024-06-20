@@ -82,16 +82,16 @@ class Alb(Element, CvRDT['Alb']):
 class AlbsTable(DWTable):
     '''AlbsTable extends DWTable.'''
 
-    def __init__(self, elements: Dict[AlbPK, Tuple[DWFlags, Alb]], before: Callable[[Time, Time], bool],):
+    def __init__(self, elements: Dict[AlbPK, Tuple[DWFlags, Alb]], before: Callable[[Time, Time], bool]):
         super().__init__(elements, before)
 
     def getNumFKs(self) -> int:
         return Alb.number_of_FKs
 
     @staticmethod
-    def getArgs(extra_id: str):
+    def getArgs(extra_id: str, table_size: int, clock: Time):
         '''return symbolic all different variables for 3 different instances of AlbsTable, and also list of those variables to be used by Z3.'''
-        return DWTable.getArgs(extra_id + "albsTab_", Alb)
+        return DWTable.getArgs(extra_id + "albsTab_", Alb, table_size, clock)
 
 
 
@@ -110,13 +110,13 @@ class Alb_FK_System(FK_System):
 
    
     @staticmethod
-    def getArgs(extra_id: str):
+    def getArgs(extra_id: str, table_size: int, clock: Time):
         '''return symbolic all different variables for 3 different instances of Alb_FK_System, and also list of those variables to be used by Z3.'''
-        return FK_System.getArgs("albFKsyst_" + extra_id, {"albTab_": AlbsTable, "artTab_": ArtsTable})
+        return FK_System.getArgs("albFKsyst_" + extra_id, {"albTab_": AlbsTable, "artTab_": ArtsTable}, table_size, clock)
       
 
     @staticmethod
-    def get_RefIntProof_Args(extra_id: str):
+    def get_RefIntProof_Args(extra_id: str, table_size: int, clock: Time):
         '''return symbolic all different variables for 2 different instances of Alb_FK_System and 1 instance of AlbPK, and also list of those variables to be used by Z3.'''
-        return FK_System.get_RefIntProof_Args(extra_id, Alb_FK_System, AlbPK)
+        return FK_System.get_RefIntProof_Args(extra_id, Alb_FK_System, AlbPK, table_size, clock)
         

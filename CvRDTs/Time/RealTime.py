@@ -1,11 +1,10 @@
 
 from z3 import *
 
-from CvRDTs.CvRDT import CvRDT
 from CvRDTs.Time.Time import Time
 
 
-class RealTime(Time, CvRDT['RealTime']):
+class RealTime(Time):
     '''A class to represent a time as an integer value. extends Time abstract class.'''
 
     def __init__(self, value: Int):
@@ -21,6 +20,10 @@ class RealTime(Time, CvRDT['RealTime']):
     
     def __eq__(self, other: 'RealTime') -> bool:
         return self.value == other.value
+    
+    def __hash__(self) -> int:
+        '''because we implement __eq__, we must implement __hash__ to be able to use RealTime as a key in a dictionary.'''
+        return hash(self.value)
     
     def equals(self, other: 'RealTime') -> BoolRef:
         '''we can override CvRDT equals, so we check == directly, instead of this <= that && that <= this''' 

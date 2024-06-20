@@ -1,25 +1,36 @@
-# # Dois dicionários com algumas chaves e valores
-# dict1 = {
-#     'b': 2,
-#     'a': 1,
-#     'c': 3 
-# }
+# Define the base class and some subclasses
 
-# dict2 = {
-#     'a': 1,
-#     'c': 3
-# }
+class SuperClass:
+    pass
 
-# # itera sobre os valores, por ordem, sem olhar pra Keys, e sizes diferentes ignora os últimos
-# # for v1, v2 in zip(dict1.values(), dict2.values()):
-# #     print(v1, v2)
+class ChildAA(SuperClass):
+    pass
 
-# # Alternativamente, para garantir que as chaves são iguais:
-# for key in dict1.keys():
-#     if key in dict2:
-#         print(dict1[key], dict2[key])
+class ChildB(SuperClass):
+    pass
 
+class OtherClass:
+    pass
 
-list1 = [1, 2, 3]
-list2 = [1, 2, 3]
-print (list1 != list2) 
+# Main function to test class relationships
+if __name__ == "__main__":
+    # Assign a class to a variable
+    ClassToTest = ChildAA
+
+    # Check if ClassToTest is a subclass of BaseClass
+    print(issubclass(ClassToTest, SuperClass))  # Should print: True
+
+    # Check if ClassToTest is exactly BaseClass
+    print(ClassToTest == SuperClass)  # Should print: False
+
+    # Assign an instance of a class to a variable
+    instance = ChildAA()
+
+    # Check if the instance is of type BaseClass
+    print(isinstance(instance, SuperClass))  # Should print: True
+
+    # Check if the type of the instance is exactly SubClassA
+    print(type(instance) == ChildAA)  # Should print: True
+
+    # Check if the instance is of type UnrelatedClass
+    print(isinstance(instance, OtherClass))  # Should print: False
