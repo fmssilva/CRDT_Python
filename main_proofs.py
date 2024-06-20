@@ -39,7 +39,7 @@ DEFAULT_TIME = RealTime                 # choose the "Time" to be used by the ta
 #############  STEP 1 ->>       CHOOSE PROOF TO RUN        ##########
 '''Choose: a) The CvRDT to prove;   b) The type of proof to run.'''
 
-CvRDT_TO_PROVE = 2
+CvRDT_TO_PROVE = 83
 CvRDT_options = { 
         # Time:
             1: LamportClock, # THIS IS NOT A CvRDT - It always grows in each merge.)
@@ -48,7 +48,7 @@ CvRDT_options = {
             11: GCounter,                       # TESTS OK
         # Registers:
             21: LWWRegister,                    # TESTS OK
-            22: MVRegister,
+            22: MVRegister,                     # TODO
         # Tables:
             31: DWFlags,                        # TESTS OK
             41: Country, 42: CountriesTable,    # TESTS OK

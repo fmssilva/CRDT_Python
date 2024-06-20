@@ -3,16 +3,16 @@ from z3 import *
 from typing import Tuple, Set, Callable, TypeVar
 
 from CvRDTs.CvRDT import CvRDT
-from CvRDTs.Time.RealTime import RealTime
 from CvRDTs.Time.Time import Time
+from PROOF_PARAMETERS import BEFORE_FUNCTION_TIME_TYPE, MAX_TABLES_SIZE_TO_PROVE
 
 V = TypeVar('V')
 
 
 class MVRegister(CvRDT['MVRegister']):
 
-    def __init__(self, time: Time, values: Set[Tuple[V, Time]] = None):
-        self.time = time
+    def __init__(self, before: Callable[[Time, Time], bool], values: Set[Tuple[V, Time]] = None):
+        self.before = before
         self.values = values or set()
 
     ###############################################################
@@ -20,8 +20,7 @@ class MVRegister(CvRDT['MVRegister']):
 
     def compatible(self, that: 'MVRegister') -> BoolRef:
         ''' replicas must have the same notion of time.'''
-        return And(isinstance(that.time, self.time.__class__), self.time.compatible(that.time))
-
+        return self.before == that.before
     
 
     def reachable(self) -> BoolRef:
@@ -32,39 +31,34 @@ class MVRegister(CvRDT['MVRegister']):
                 and we just add some constraints for the before function's, of the properties that all of them must have.
             Having our generic before function, we can check if our MVRegister is reachable for any Time type.'''
 
-        # s = Solver()
-        # t1, t2, t3 = Ints('t1 t2 t3') # 3 symbolic variables for time
+        s = Solver()
+        t1, t2, t3 = Ints('t1 t2 t3') # 3 symbolic variables for time
 
-        # # Add constraints for the before function's properties
-        # before = Function('before', IntSort(), IntSort(), BoolSort())
+        # Add constraints for the before function's properties
+        before = Function('before', IntSort(), IntSort(), BoolSort())
 
-        # s.add(ForAll([t1], Not(before(t1, t1))))
-        # s.add(ForAll([t1, t2], Implies(before(t1, t2), Not(before(t2, t1)))))
-        # s.add(ForAll([t1, t2, t3], Implies(And(before(t1, t2), before(t2, t3)), before(t1, t3))))
-
-        booleans = []
-        booleans.append(self.time.reachable())
+        s.add(ForAll([t1], Not(before(t1, t1))))
+        s.add(ForAll([t1, t2], Implies(before(t1, t2), Not(before(t2, t1)))))
+        s.add(ForAll([t1, t2, t3], Implies(And(before(t1, t2), before(t2, t3)), before(t1, t3))))
 
         # Add constraints for the values set
         for (v1, time1) in self.values:
             for (v2, time2) in self.values:
-                booleans.append(Or(time1 == time2, self.concurrent(time1, time2)))
+                s.add(Or(time1 == time2, self.concurrent(time1, time2)))
 
         # Check the satisfiability of the constraints
-        # return s.check() == sat
-        return And(*booleans)
+        return s.check() == sat
     
 
 
     def __eq__(self, that: 'MVRegister') -> BoolRef:
-        return And (self.time == that.time, 
+        return And (self.before == that.before, 
                     self.values == that.values) # this == will check if all elements of this and that set match, and for each element, in this case Tuple(v,time), check if they are ==, and if v is of primitive type so its a normal ==, else if v is some object then will be compared by __eq__, and same for time, which must implement its __eq__ in its class
         
 
     # equals defined in CvRDT which calls compare to check if this <= that and that <= this
 
     def compare(self, that: 'MVRegister') -> BoolRef:
-        # TODO: usamos zip??
         return all(self.before_or_equal(x[1], y[1]) for x in self.values for y in that.values)
 
     def merge(self, that: 'MVRegister') -> 'MVRegister':
@@ -120,63 +114,63 @@ class MVRegister(CvRDT['MVRegister']):
     #####################  Methods for Proofs  ####################
     
     @staticmethod
-    def getArgs (extra_id: str, clock: 'Time' = RealTime, max_values_per_reg: int = 1):
-        ''' return symbolic all different variables for 3 different instances of a given concrete table, and also list of those variables to be used by Z3.
-            @Pre: we test values with type Int.'''
+    def getArgs (extra_id: str, max_values_per_reg: int = 1):
+        '''return symbolic all different variables for 3 different instances of a given concrete table, and also list of those variables to be used by Z3.'''
 
-        # WITH BEFORE FUN
-        # # before: Callable[[Time, Time], bool]
-        # before_args1, before_args2, before_args3, before_args_for_instance1, before_args_for_instance2, before_args_for_instance3 = BEFORE_FUNCTION_TIME_TYPE.getBeforeFunArgs("MVReg_"+extra_id)
+        # before: Callable[[Time, Time], bool]
+        before_args1, before_args2, before_args3, before_args_for_instance1, before_args_for_instance2, before_args_for_instance3 = BEFORE_FUNCTION_TIME_TYPE.getBeforeFunArgs("MVReg_"+extra_id)
 
-        # # values: Set[Tuple[V, Time]]    
-        # set1_values = [Int(f'set1_value{i}_{extra_id}') for i in range(max_values_per_reg)]
-        # set2_values = [Int(f'set2_value{i}_{extra_id}') for i in range(max_values_per_reg)]
-        # set3_values = [Int(f'set3_value{i}_{extra_id}') for i in range(max_values_per_reg)]
+        # values: Set[Tuple[V, Time]]    
+        set1_values = [Int(f'set1_value{i}_{extra_id}') for i in range(max_values_per_reg)]
+        set2_values = [Int(f'set2_value{i}_{extra_id}') for i in range(max_values_per_reg)]
+        set3_values = [Int(f'set3_value{i}_{extra_id}') for i in range(max_values_per_reg)]
 
-        # set1_times = [Int(f'set1_time{i}_{extra_id}') for i in range(max_values_per_reg)]
-        # set2_times = [Int(f'set2_time{i}_{extra_id}') for i in range(max_values_per_reg)]
-        # set3_times = [Int(f'set3_time{i}_{extra_id}') for i in range(max_values_per_reg)]
+        set1_times = [Int(f'set1_time{i}_{extra_id}') for i in range(max_values_per_reg)]
+        set2_times = [Int(f'set2_time{i}_{extra_id}') for i in range(max_values_per_reg)]
+        set3_times = [Int(f'set3_time{i}_{extra_id}') for i in range(max_values_per_reg)]
 
-        # set1 = set([(v, t) for v, t in zip(set1_values, set1_times)])
-        # set2 = set([(v, t) for v, t in zip(set2_values, set2_times)])
-        # set3 = set([(v, t) for v, t in zip(set3_values, set3_times)])
+        set1 = set([(v, t) for v, t in zip(set1_values, set1_times)])
+        set2 = set([(v, t) for v, t in zip(set2_values, set2_times)])
+        set3 = set([(v, t) for v, t in zip(set3_values, set3_times)])
 
-        # args1 = [before_args1, set1]
-        # args2 = [before_args2, set2]
-        # args3 = [before_args3, set3]
+        args1 = [before_args1, set1]
+        args2 = [before_args2, set2]
+        args3 = [before_args3, set3]
 
-        # vars_for_instance1 = set1_values + set1_times + before_args_for_instance1
-        # vars_for_instance2 = set2_values + set2_times + before_args_for_instance2
-        # vars_for_instance3 = set3_values + set3_times + before_args_for_instance3
+        vars_for_instance1 = set1_values + set1_times + before_args_for_instance1
+        vars_for_instance2 = set2_values + set2_times + before_args_for_instance2
+        vars_for_instance3 = set3_values + set3_times + before_args_for_instance3
 
-        # return args1, args2, args3, vars_for_instance1, vars_for_instance2, vars_for_instance3
+        return args1, args2, args3, vars_for_instance1, vars_for_instance2, vars_for_instance3
 
+
+        ####################################################################
         # WITH TIME
 
-        vars_for_instance1, vars_for_instance2, vars_for_instance3 = [], [], []
+        # vars_for_instance1, vars_for_instance2, vars_for_instance3 = [], [], []
 
-        set1, set2, set3 = set(), set(), set()
+        # set1, set2, set3 = set(), set(), set()
         
-        for tupl in range(max_values_per_reg): # for each Tuple(V, Time) in the set of each replica
+        # for tupl in range(max_values_per_reg): # for each Tuple(V, Time) in the set of each replica
             
-            # get symbolic variables for Time for each replica
-            clock1_args, clock2_args, clock3_args, clock_vars_for_instance1, clock_vars_for_instance2, clock_vars_for_instance3 = clock.getArgs(f"tupl{tupl}_MVreg_{extra_id}")
+        #     # get symbolic variables for Time for each replica
+        #     clock1_args, clock2_args, clock3_args, clock_vars_for_instance1, clock_vars_for_instance2, clock_vars_for_instance3 = clock.getArgs(f"tupl{tupl}_MVreg_{extra_id}")
             
-            # get symbolic variables for V for each replica
-            v1, v2, v3 = Ints(f'tupl{tupl}_MVReg1_{extra_id} tupl{tupl}_MVReg2_{extra_id} tupl{tupl}_MVReg3_{extra_id}')
+        #     # get symbolic variables for V for each replica
+        #     v1, v2, v3 = Ints(f'tupl{tupl}_MVReg1_{extra_id} tupl{tupl}_MVReg2_{extra_id} tupl{tupl}_MVReg3_{extra_id}')
                             
-            set1.add( (v1, clock(*clock1_args)) )
-            set2.add( (v2, clock(*clock2_args)) )
-            set3.add( (v3, clock(*clock3_args)) )
+        #     set1.add( (v1, clock(*clock1_args)) )
+        #     set2.add( (v2, clock(*clock2_args)) )
+        #     set3.add( (v3, clock(*clock3_args)) )
 
-            vars_for_instance1 += [v1] + clock_vars_for_instance1 
-            vars_for_instance2 += [v2] + clock_vars_for_instance2
-            vars_for_instance3 += [v3] + clock_vars_for_instance3
+        #     vars_for_instance1 += [v1] + clock_vars_for_instance1 
+        #     vars_for_instance2 += [v2] + clock_vars_for_instance2
+        #     vars_for_instance3 += [v3] + clock_vars_for_instance3
 
-        MVreg1_args = [clock, set1]
-        MVreg2_args = [clock, set2]
-        MVreg3_args = [clock, set3]
+        # MVreg1_args = [clock, set1]
+        # MVreg2_args = [clock, set2]
+        # MVreg3_args = [clock, set3]
 
-        return MVreg1_args, MVreg2_args, MVreg3_args, vars_for_instance1, vars_for_instance2, vars_for_instance3
+        # return MVreg1_args, MVreg2_args, MVreg3_args, vars_for_instance1, vars_for_instance2, vars_for_instance3
 
 
