@@ -4,7 +4,7 @@ from typing import Callable, Dict, Tuple
 
 from CvRDTs.Tables.PK import PK
 from CvRDTs.Tables.Element import Element
-from CvRDTs.Tables.DWFlags import DWFlags
+from CvRDTs.Tables.Flags_DW import Flags_DW
 from CvRDTs.Tables.Table import Table
 
 from CvRDTs.Time.Time import Time
@@ -16,7 +16,7 @@ class DWTable(Table):
     '''DWTable provides a default implementation of methods of the CvRDT.
        DWTable extends CvRDT. And CvRDT accepts a generic type T, which we here bind to DWTable.'''
     
-    def __init__(self, elements: Dict[PK, Tuple[DWFlags, Element]], before: Callable[[Time, Time], bool]): 
+    def __init__(self, elements: Dict[PK, Tuple[Flags_DW, Element]], before: Callable[[Time, Time], bool]): 
         super().__init__(elements, before)
 
     def compatible(self, other: 'DWTable') -> BoolRef:
@@ -34,7 +34,7 @@ class DWTable(Table):
                             pk.reachable(),
                             # check flags
                             elem[0].reachable(),
-                            elem[0].flag != Status.DELETED,
+                            elem[0].DI_flag != Status.DELETED,
                             len(elem[0].fk_versions) == self.getNumFKs(),
                             # check values
                             elem[1].reachable()
@@ -95,7 +95,7 @@ class DWTable(Table):
                 merged_elems[pk] = other.elements[pk]       
         return self.copy(self.elements)
 
-    def copy (self, newElements: Dict[PK, Tuple[DWFlags, Element]]) -> 'DWTable':
+    def copy (self, newElements: Dict[PK, Tuple[Flags_DW, Element]]) -> 'DWTable':
         '''return a new DWTable with the given elements.'''
         return self.__class__(newElements, self.before)
 
@@ -103,7 +103,7 @@ class DWTable(Table):
         if pk not in self.elements:
             return Version.ERROR_VERSION
         elem_flags = self.elements[pk][0]
-        return If(is_true(elem_flags.flag == Status.VISIBLE), elem_flags.version, Version.ERROR_VERSION)   
+        return If(is_true(elem_flags.DI_flag == Status.VISIBLE), elem_flags.version, Version.ERROR_VERSION)   
     
 
     def setFlag(self, pk: PK, flag: Int):
@@ -128,11 +128,11 @@ class DWTable(Table):
             elem1_args, elem2_args, elem3_args3, elem_vars_for_instance1, elem_args_for_instance2, elem_args_for_instance3 = elem.getArgs(str(i) + "_DWTab_" + extra_id)
             elem1, elem2, elem3 = elem(*elem1_args), elem(*elem2_args), elem(*elem3_args3)
             
-            flag1_args, flag2_args, flag3_args, flag_vars_for_instance1, flag_args_for_instance2, flag_args_for_instance3 = DWFlags.getArgs(str(i) + "_DWTab_" + extra_id, elem.number_of_FKs)
+            flag1_args, flag2_args, flag3_args, flag_vars_for_instance1, flag_args_for_instance2, flag_args_for_instance3 = Flags_DW.getArgs(str(i) + "_DWTab_" + extra_id, elem.number_of_FKs)
             
-            elements1[elem1.getPK()] = (DWFlags(*flag1_args), elem1)
-            elements2[elem2.getPK()] = (DWFlags(*flag2_args), elem2)
-            elements3[elem3.getPK()] = (DWFlags(*flag3_args), elem3)
+            elements1[elem1.getPK()] = (Flags_DW(*flag1_args), elem1)
+            elements2[elem2.getPK()] = (Flags_DW(*flag2_args), elem2)
+            elements3[elem3.getPK()] = (Flags_DW(*flag3_args), elem3)
 
             vars_for_instance1 += elem_vars_for_instance1 + flag_vars_for_instance1
             vars_for_instance2 += elem_args_for_instance2 + flag_args_for_instance2

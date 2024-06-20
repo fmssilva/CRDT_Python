@@ -8,7 +8,7 @@ from CvRDTs.Registers.LWWRegister import LWWRegister
 
 from CvRDTs.Tables.PK import PK
 from CvRDTs.Tables.Element import Element
-from CvRDTs.Tables.DWFlags import DWFlags
+from CvRDTs.Tables.Flags_DW import Flags_DW
 from CvRDTs.Tables.DWTable import DWTable
 from CvRDTs.Tables.FK_System import FK_System
 
@@ -82,7 +82,7 @@ class Alb(Element, CvRDT['Alb']):
 class AlbsTable(DWTable):
     '''AlbsTable extends DWTable.'''
 
-    def __init__(self, elements: Dict[AlbPK, Tuple[DWFlags, Alb]], before: Callable[[Time, Time], bool]):
+    def __init__(self, elements: Dict[AlbPK, Tuple[Flags_DW, Alb]], before: Callable[[Time, Time], bool]):
         super().__init__(elements, before)
 
     def getNumFKs(self) -> int:

@@ -34,7 +34,7 @@ class LamportClock(Time):
     # equals is as defined in CvRDT
 
     def compare(self, that: 'LamportClock') -> BoolRef:
-        return self.smaller_or_equal(that)
+        return self.before_or_equal(that)
     
     def merge(self, that: 'LamportClock') -> 'LamportClock':
         return self.sync(that)
@@ -42,10 +42,10 @@ class LamportClock(Time):
     def merge_with_version(self, that: 'LamportClock', this_version: int, that_version: int) -> 'LamportClock':
         merged_replica = If(this_version > that_version, self.replica, 
                             If (that_version > this_version, that.replica,
-                                If (self.greater_or_equal(that), self.replica, that.replica)))
+                                If (self.after_or_equal(that), self.replica, that.replica)))
         merged_counter = If(this_version > that_version, self.counter,
                             If (that_version > this_version, that.counter,
-                                If (self.greater_or_equal(that), self.counter, that.counter)))
+                                If (self.after_or_equal(that), self.counter, that.counter)))
         return LamportClock(merged_replica, merged_counter)
 
 
@@ -57,28 +57,24 @@ class LamportClock(Time):
 
     def sync(self, that: 'LamportClock') -> 'LamportClock':
         max_time = If(self.counter >= that.counter, self.counter, that.counter)
-        return LamportClock(self.replica, max_time + 1)
+        # return LamportClock(self.replica, max_time + 1)
         # if want to try LamportClock as a CvRDT, converging, then use the next lines:
-        # max_replica = If(self.replica >= that.replica, self.replica, that.replica)
-        # return LamportClock(max_replica, max_time)
+        max_replica = If(self.replica >= that.replica, self.replica, that.replica)
+        return LamportClock(max_replica, max_time)
     
-    def smaller(self, that: 'LamportClock') -> BoolRef: # impose a total order using the replica id
+    def before(self, that: 'LamportClock') -> BoolRef: # impose a total order using the replica id
         return Or(And(self.counter == that.counter, self.replica < that.replica), self.counter < that.counter)
 
-    def before(self, other: 'LamportClock') -> bool:
-        return self.smaller(other)
-
-    def smaller_or_equal(self, that: 'LamportClock') -> BoolRef:
-        return Or(self == that, self.smaller(that))
-
-    def greater_or_equal(self, that: 'LamportClock') -> BoolRef:
-        return Not(self.smaller(that))
+    ########################################################################
+    ################    HelperMethods For Tables       #####################
     
-    def getGreateOrEqualStamp(self, that: 'LamportClock') -> 'LamportClock':
-        rep = If(self.greater_or_equal(that), self.replica, that.replica)
-        count = If(self.greater_or_equal(that), self.counter, that.counter)
+    def get_after_or_equal_stamp(self, that: 'LamportClock') -> 'LamportClock':
+        rep = If(self.after_or_equal(that), self.replica, that.replica)
+        count = If(self.after_or_equal(that), self.counter, that.counter)
         return LamportClock(rep, count)
-    
+
+    ########################################################################
+    ################    Helper methods for Profs      ######################
     
     @staticmethod
     def getArgs(extra_id: str):

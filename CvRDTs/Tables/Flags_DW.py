@@ -4,51 +4,47 @@ from typing import List
 
 from CvRDTs.Tables.Flags import Flags, Status, Version
 
-class DWFlags(Flags):
+class Flags_DW(Flags):
 
-    def __init__(self, version: int, flag: int, fk_versions: List[int]):
-        super().__init__(version, flag)
+    def __init__(self, version: int, DI_flag: int, fk_versions: List[int]):
+        super().__init__(DI_flag)
         self.version = version
-        self.flag = flag
         self.fk_versions = fk_versions
 
-    def compatible(self, that: 'DWFlags') -> BoolRef:
+    def compatible(self, that: 'Flags_DW') -> BoolRef:
         return len(self.fk_versions) == len(that.fk_versions)
 
     def reachable(self) -> BoolRef:
         return And( self.version >= Version.INIT_VERSION,
-                    Or (self.flag == Status.DELETED, self.flag == Status.VISIBLE),
+                    Or (self.DI_flag == Status.DELETED, self.DI_flag == Status.VISIBLE),
                     And(*[fk_version >= Version.INIT_VERSION for fk_version in self.fk_versions])
         )
     
-    def __eq__(self, that: 'DWFlags') -> BoolRef:
+    def __eq__(self, that: 'Flags_DW') -> BoolRef:
         '''Implement the (==) operator of z3 - compare all fields of the object and guarantee that the object is the same.
             @Pre: self.compatible(that)'''
         return And(
             self.version == that.version,
-            self.flag == that.flag,
+            self.DI_flag == that.DI_flag,
             And(*[fk1 == fk2 for fk1, fk2 in zip(self.fk_versions, that.fk_versions)])
         )
 
-    def equals(self, that: 'DWFlags') -> BoolRef:
+    def equals(self, that: 'Flags_DW') -> BoolRef:
         ''' override equals from CvRDT:
                 - for better efficiency: we check if this == that, instead of checking if this <= that and that <= this.
                 - to avoid confusing with the compare method, when checking if self.flag <= that.flag, which might give errors if we change the numbers of the flags in the future.'''
         return self.__eq__(that)
 
-    def compare(self, that: 'DWFlags') -> BoolRef:
-        ''' we override equals from CvRDT so this is not used'''
-        return False
 
-    def merge(self, that: 'DWFlags') -> 'DWFlags':
+    def merge(self, that: 'Flags_DW') -> 'Flags_DW':
         # If different versions -> choose the bigger one
         merged_version = If(self.version > that.version, self.version, that.version)
         
         # Merge flags: if different versions -> choose the flag of the bigger one; if same version -> if equal flags -> one; if different flags -> choose the DELETED one 
-        merged_flag = If(self.version > that.version, self.flag,
-               If(that.version > self.version, that.flag, 
-                  If(self.flag == that.flag, self.flag, 
-                     If (self.flag == Status.DELETED, self.flag, that.flag))))
+        merged_flag = If(self.version > that.version, self.DI_flag,
+               If(that.version > self.version, that.DI_flag, 
+                  If(self.DI_flag == that.DI_flag, self.DI_flag, 
+                     If (self.DI_flag == Status.DELETED, self.DI_flag, that.DI_flag))))
 
         # If same version and same flag -> merge fk_versions choosing the bigger one
         # TODO - ver como melhorar eficiencia 
@@ -56,7 +52,7 @@ class DWFlags(Flags):
                                  If (that.version > self.version, fk2,
                                      If (fk1 > fk2, fk1, fk2))) for fk1, fk2 in zip(self.fk_versions, that.fk_versions)]
 
-        return DWFlags(merged_version, merged_flag, merged_fk_versions)
+        return Flags_DW(merged_version, merged_flag, merged_fk_versions)
         
     
 
@@ -68,8 +64,8 @@ class DWFlags(Flags):
     def get_fk_version(self, idx: int) -> Int:
         return self.fk_versions[idx]
 
-    def set_flag(self, new_flag: Int) -> 'DWFlags':
-        return DWFlags(self.version, new_flag, self.fk_versions)
+    def set_flag(self, new_flag: Int) -> 'Flags_DW':
+        return Flags_DW(self.version, new_flag, self.fk_versions)
 
 
 

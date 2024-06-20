@@ -14,11 +14,13 @@ from CvRDTs.Counters.GCounter import GCounter
 from CvRDTs.Registers.MVRegister import MVRegister
 from CvRDTs.Tables.FK_System import FK_System
 from CvRDTs.Tables.Table import Table
+from CvRDTs.Tables.Flags_UW import Flags_UW
+from CvRDTs.Test_MVReg import TestClass
 from CvRDTs.Time.RealTime import RealTime
 from CvRDTs.Time.LamportClock import LamportClock
 from CvRDTs.Time.VersionVector import VersionVector
 from CvRDTs.Registers.LWWRegister import LWWRegister
-from CvRDTs.Tables.DWFlags import DWFlags
+from CvRDTs.Tables.Flags_DW import Flags_DW
 
 # import ConcreteTables
 from ConcreteTables.Art import Art, ArtsTable
@@ -29,9 +31,11 @@ from ConcreteTables.Alb import Alb, Alb_FK_System, AlbPK, AlbsTable
 #####################################################################
 ############   STEP 1 ->>  CHOOSE PROOF PARAMETERS        ###########
 
-MAX_TABLES_SIZE_TO_PROVE = 100          # Some proofs don't terminate, so one solution is to limite the size of tables to test and accept that limitation
+TABLE_SIZE_FOR_SYMBOLIC_VARS = 100          # Size of table to fill with symbolic variables. When preparing proofs to run in Z3 we need to set up some symbolic variables for all our attributes, fields, objects, etc. With complex examples the number of symbolic variables to test rise fast. So set here the size of tables to fill with symbolic variables 
 
-DEFAULT_TIME = RealTime                 # choose the "Time" to be used by the tables in the before function
+VECTOR_SIZE_FOR_SYMBOLIC_VARS = 20          # Size of vector of DWFlag (fk_versions) and MVRegister set(Tuple(v, time)), to fill with symbolic variables.
+
+DEFAULT_TIME = VersionVector                # "Time" to be used by the tables and MVRegister in the before function
 
 
 
@@ -39,8 +43,9 @@ DEFAULT_TIME = RealTime                 # choose the "Time" to be used by the ta
 #############  STEP 1 ->>       CHOOSE PROOF TO RUN        ##########
 '''Choose: a) The CvRDT to prove;   b) The type of proof to run.'''
 
-CvRDT_TO_PROVE = 83
+CvRDT_TO_PROVE = 32
 CvRDT_options = { 
+            0: TestClass,       # TODO: delete when not needed anymore
         # Time:
             1: LamportClock, # THIS IS NOT A CvRDT - It always grows in each merge.)
             2: VersionVector,  3: RealTime,     # TESTS OK
@@ -48,9 +53,9 @@ CvRDT_options = {
             11: GCounter,                       # TESTS OK
         # Registers:
             21: LWWRegister,                    # TESTS OK
-            22: MVRegister,                     # TODO
+            22: MVRegister,     # TODO
         # Tables:
-            31: DWFlags,                        # TESTS OK
+            31: Flags_DW, 32: Flags_UW,            # TESTS OK
             41: Country, 42: CountriesTable,    # TESTS OK
             51: Genre, 52: GenreTable,          # TESTS OK
             61: Art, 62: ArtsTable,             # TESTS OK
@@ -86,11 +91,17 @@ proofs_options = {
 #################       HELPER METHOD      ##################
 
 def getArgsForProof():
-    if CvRDT_to_prove == DWFlags:
-        return ["",MAX_TABLES_SIZE_TO_PROVE]
+    if CvRDT_to_prove == Flags_DW:
+        return ["",VECTOR_SIZE_FOR_SYMBOLIC_VARS]
+    if CvRDT_to_prove == Flags_UW:
+        return ["", DEFAULT_TIME]
+    if CvRDT_to_prove == MVRegister:
+        return ["", VECTOR_SIZE_FOR_SYMBOLIC_VARS, DEFAULT_TIME]
     if issubclass(CvRDT_to_prove, Table) or issubclass(CvRDT_to_prove, FK_System):
-        return ["",MAX_TABLES_SIZE_TO_PROVE, DEFAULT_TIME]
+        return ["",TABLE_SIZE_FOR_SYMBOLIC_VARS, DEFAULT_TIME]
     return [""]
+
+
 
 def print_proof(proof_name, solver):
     res = solver.check()
@@ -184,7 +195,7 @@ if __name__ == "__main__":
         print("\nStarting Ref_Integrity proofs for ", CvRDT_to_prove.__name__)
 
         proofs = Proofs_Ref_Integrity
-        FK1_args, FK2_args, albPK_args, vars_for_2_inst_of_FK_Syst_and_1_inst_of_its_PKs = CvRDT_to_prove.get_RefIntProof_Args("",MAX_TABLES_SIZE_TO_PROVE, DEFAULT_TIME)
+        FK1_args, FK2_args, albPK_args, vars_for_2_inst_of_FK_Syst_and_1_inst_of_its_PKs = CvRDT_to_prove.get_RefIntProof_Args("",TABLE_SIZE_FOR_SYMBOLIC_VARS, DEFAULT_TIME)
 
         check_all_z3_variables_have_different_names(vars_for_2_inst_of_FK_Syst_and_1_inst_of_its_PKs)
 

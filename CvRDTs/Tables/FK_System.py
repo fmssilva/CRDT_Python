@@ -6,7 +6,7 @@ from typing import List, Tuple
 from CvRDTs.CvRDT import CvRDT
 from CvRDTs.Tables.PK import PK
 from CvRDTs.Tables.Flags import Status
-from CvRDTs.Tables.DWFlags import DWFlags
+from CvRDTs.Tables.Flags_DW import Flags_DW
 from CvRDTs.Tables.Table import Table
 from CvRDTs.Time.Time import Time
 
@@ -89,7 +89,7 @@ class FK_System(CvRDT['FK_System']):
     ### HELPER METHODS FOR REFERENTIAL INTEGRITY PROOFS  ##
     
     # --->> FOR DELETE-WINS MAIN TABLE 
-    def has_visible_fks_versions(self, elem: Tuple[DWFlags, PK]) -> BoolRef:
+    def has_visible_fks_versions(self, elem: Tuple[Flags_DW, PK]) -> BoolRef:
         ''' return - false if some FK is not visible anymore (the version of the FK in this Album does not match the version of the FK in the original referenced table)
                      (check one FK at a time, so if the first is not visible for example, we don't need to check the others)
                      true if all FKs are still visible
@@ -106,7 +106,7 @@ class FK_System(CvRDT['FK_System']):
             @Pre: the album with the given PK exists.
             @Pre: this method is only called if the main_table is a DELETE_WINS table.'''
         elem = self.main_table.elements.get(pk)
-        if is_true(elem[0].flag == DWFlags.DELETED):
+        if is_true(elem[0].flag == Flags_DW.DELETED):
             return 0
         elif is_true(self.has_visible_fks_versions(elem)):
             return elem[0].version

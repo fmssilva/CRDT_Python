@@ -6,7 +6,7 @@ from CvRDTs.Time.Time import Time
 
 from CvRDTs.Tables.PK import PK
 from CvRDTs.Tables.Element import Element
-from CvRDTs.Tables.DWFlags import DWFlags
+from CvRDTs.Tables.Flags_DW import Flags_DW
 from CvRDTs.Tables.DWTable import DWTable
 from CvRDTs.Registers.LWWRegister import LWWRegister
 
@@ -64,7 +64,7 @@ class Country(Element, CvRDT['Country']):
 class CountriesTable(DWTable):
     '''ArtsTable extends DWTable.'''
     
-    def __init__(self, elements: Dict[CountryPK, Tuple[DWFlags, Country]], before: Callable[[Time, Time], bool]):
+    def __init__(self, elements: Dict[CountryPK, Tuple[Flags_DW, Country]], before: Callable[[Time, Time], bool]):
         super().__init__(elements, before)
 
     def getNumFKs(self) -> int:

@@ -33,11 +33,11 @@ class LWWRegister(Generic[V], CvRDT['LWWRegister[V]']):
     # equals is as defined in CvRDT
 
     def compare(self, that: 'LWWRegister[V]') -> BoolRef:
-        return self.stamp.smaller_or_equal(that.stamp)
+        return self.stamp.before_or_equal(that.stamp)
 
     def merge(self, that: 'LWWRegister[V]') -> 'LWWRegister[V]':
-        merged_value = If(self.stamp.greater_or_equal(that.stamp), self.value, that.value)
-        stamp = self.stamp.getGreateOrEqualStamp(that.stamp)
+        merged_value = If(self.stamp.after_or_equal(that.stamp), self.value, that.value)
+        stamp = self.stamp.get_after_or_equal_stamp(that.stamp)
         return LWWRegister(merged_value, stamp)
 
     
@@ -54,7 +54,7 @@ class LWWRegister(Generic[V], CvRDT['LWWRegister[V]']):
     def merge_with_version(self, that: 'LWWRegister[V]', this_version: int, that_version: int) -> 'LWWRegister[V]':
         merged_value = If(this_version > that_version, self.value, 
                           If (that_version > this_version, that.value,
-                                If (self.stamp.greater_or_equal(that.stamp), self.value, that.value)))
+                                If (self.stamp.after_or_equal(that.stamp), self.value, that.value)))
         merged_stamp = self.stamp.merge_with_version(that.stamp, this_version, that_version)
         return LWWRegister(merged_value, merged_stamp)
 

@@ -31,7 +31,7 @@ class VersionVector(Time):
     # equals = this <= that && that <= this implemented in CvRDT class
         
     def compare(self, that: 'VersionVector') -> BoolRef:
-        return self.beforeOrEqual(that)
+        return self.before_or_equal(that)
     
     def merge(self, that: 'VersionVector') -> 'VersionVector':
         return self.sync(that)
@@ -61,24 +61,6 @@ class VersionVector(Time):
         return And(
             And(*[a <= b for a, b in vectors]), # all values <= 
             Or(*[a < b for a, b in vectors]))   # && exists at least one value <
-
-    def beforeOrEqual(self, that: 'VersionVector') -> BoolRef:
-        # return Or(self.vector == that.vector, self.before(that))
-        # to be more efficient we can check directly:
-        return And(*[a <= b for a, b in zip(self.vector, that.vector)])
-
-    def after(self, that: 'VersionVector') -> BoolRef:
-        return that.before(self)
-
-    def afterOrEqual(self, that: 'VersionVector') -> BoolRef:
-        # return Or(self.vector == that.vector, self.after(that))
-        # to be more efficient we can check directly:
-        return And(*[a >= b for a, b in zip(self.vector, that.vector)])
-
-    def concurrent(self, that: 'VersionVector') -> BoolRef:
-        return And(self.vector != that.vector, # if they are equal, it represents the same state, so they are not concurrent
-                   Not(self.before(that)),
-                   Not (that.before(self)))
 
     def sync(self, that) -> 'VersionVector':
         # we can use zip because we know each idx corresponds to the same replica, and also vectors have the same size so there will be no elements left in the longest vector)
@@ -113,3 +95,10 @@ class VersionVector(Time):
         z3_vars_for_instance3 = vector3
 
         return vec1_args, vec2_args, vec3_args, z3_vars_for_instance1, z3_vars_for_instance2, z3_vars_for_instance3
+    
+
+    @staticmethod
+    def getBeforeFunArgs(extra_id: str):
+        '''return 3 symbolic functions of before: (Int, Int) -> Bool; and also the needed symbolic varibales for all 3 functions.'''
+        return Time.getBeforeFunArgs("RealTime_"+extra_id, IntSort())
+        
