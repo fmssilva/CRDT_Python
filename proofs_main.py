@@ -3,6 +3,9 @@ from z3 import *
 from typing import List
 
 # import Proofs
+from ConcreteTables.Country import CountriesTable, Country
+from ConcreteTables.Genre import Genre, GenreTable
+from ConcreteTables.Song import Song, SongsTable
 from CvRDTs.Examples.BiggerValue import TestClass
 from CvRDTs.Proofs_CvRDTs import Proofs_CvRDT
 from CvRDTs.Proofs_Ref_Integrity import Proofs_Ref_Integrity
@@ -30,7 +33,7 @@ from ConcreteTables.Alb import Alb, Alb_FK_System, AlbPK, AlbsTable
 #############  STEP 1 ->>       CHOOSE PROOF TO RUN        ##########
 '''Choose: a) The CvRDT to prove;   b) The type of proof to run.'''
 
-CvRDT_TO_PROVE = 53
+CvRDT_TO_PROVE = 83
 CvRDT_options = { 
         # Test Examples: 
             0: TestClass,       # TESTS OK      (just some simple class with 2 inner object, each of them with List[int] args)
@@ -43,11 +46,11 @@ CvRDT_options = {
             21: LWWRegister,    # TESTS OK
         # Tables:
             31: DWFlags,        # TESTS OK
-            41: Art,            # TESTS OK
-            42: ArtsTable,      # TESTS OK
-            51: Alb,            # TESTS OK
-            52: AlbsTable,      # TESTS OK
-            53: Alb_FK_System
+            41: Country, 42: CountriesTable,  # TESTS OK
+            51: Genre, 52: GenreTable,  # TESTS OK
+            61: Art, 62: ArtsTable,      # TESTS OK
+            71: Song, 72: SongsTable,    # TESTS OK
+            81: Alb, 82: AlbsTable, 83: Alb_FK_System # TESTS OK
 }
 
 
@@ -171,7 +174,7 @@ if __name__ == "__main__":
 
         fk_syst_instance1 = CvRDT_to_prove(*FK1_args)
         fk_syst_instance2 = CvRDT_to_prove(*FK2_args)
-        elem_pk_instance = AlbPK(*albPK_args)
+        elem_pk_instance = AlbPK(*albPK_args) if CvRDT_to_prove == Alb_FK_System else None
 
         if proof_to_run in ["generic_referential_integrity", "ALL"]:
             solver.add(proofs.generic_referential_integrity(

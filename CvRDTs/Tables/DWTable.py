@@ -117,6 +117,9 @@ class DWTable(Table):
     #         ForAll([v1, v2, v3], v1.merge(v2).merge(v3) == v1.merge(v2.merge(v3)))
     #     )
 
+    def copy (self, newElements: Dict[PK, Tuple[DWFlags, Element]]) -> 'DWTable':
+        '''return a new DWTable with the given elements.'''
+        return self.__class__(newElements, self.before)
 
     def getVersion(self, pk: PK) -> Int:
         if pk not in self.elements:

@@ -64,9 +64,11 @@ class FK_System(CvRDT['FK_System']):
         )
     
 
-    @abstractmethod
-    def merge(self, that: 'FK_System') -> 'FK_System':
-        pass
+    def merge(self, other: 'FK_System') -> 'FK_System':
+        return self.__class__(
+            self.albs_table.merge(other.albs_table),
+            self.arts_table.merge(other.arts_table)
+        )
 
     
     def ref_integrity_holds_elem(self, pk: PK) -> BoolRef:

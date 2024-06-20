@@ -59,7 +59,7 @@ class Element:
                 merged_args.append(thisArg)
             else:
                 merged_args.append(thisArg.merge(thatArg))
-        return type(self)(*merged_args)
+        return self.__class__(*merged_args)
     
     def merge_with_version(self, other: 'Element', this_version: int, that_version: int) -> 'Element':
         '''return the merge of the given Element with the current Element, considering the versions of the Elements.'''
