@@ -15,15 +15,15 @@ from CvRDTs.Registers.MVRegister import MVRegister
 from CvRDTs.Tables.FK_System import FK_System
 from CvRDTs.Tables.Table import Table
 from CvRDTs.Tables.Flags_UW import Flags_UW
-from CvRDTs.Test_MVReg import TestClass
+from CvRDTs.Tables.Flags_DW import Flags_DW
+from CvRDTs.Test_MVReg import Test_MVReg
 from CvRDTs.Time.RealTime import RealTime
 from CvRDTs.Time.LamportClock import LamportClock
 from CvRDTs.Time.VersionVector import VersionVector
 from CvRDTs.Registers.LWWRegister import LWWRegister
-from CvRDTs.Tables.Flags_DW import Flags_DW
 
 # import ConcreteTables
-from ConcreteTables.Art import Art, ArtsTable
+from ConcreteTables.Art import Art, Art_FK_System, ArtsTable
 from ConcreteTables.Alb import Alb, Alb_FK_System, AlbPK, AlbsTable
 
 
@@ -31,36 +31,58 @@ from ConcreteTables.Alb import Alb, Alb_FK_System, AlbPK, AlbsTable
 #####################################################################
 ############   STEP 1 ->>  CHOOSE PROOF PARAMETERS        ###########
 
-TABLE_SIZE_FOR_SYMBOLIC_VARS = 100          # Size of table to fill with symbolic variables. When preparing proofs to run in Z3 we need to set up some symbolic variables for all our attributes, fields, objects, etc. With complex examples the number of symbolic variables to test rise fast. So set here the size of tables to fill with symbolic variables 
+TABLE_SIZE_FOR_SYMBOLIC_VARS = 200
+# Size of table to fill with symbolic variables. When preparing proofs to run in Z3 we need to set up some symbolic variables for all our attributes, fields, objects, etc. With complex examples the number of symbolic variables to test rise fast. So set here the size of tables to fill with symbolic variables 
 
-VECTOR_SIZE_FOR_SYMBOLIC_VARS = 20          # Size of vector of DWFlag (fk_versions) and MVRegister set(Tuple(v, time)), to fill with symbolic variables.
+VECTOR_SIZE_FOR_SYMBOLIC_VARS = 50          
+# Size of vector of DWFlag (fk_versions) and MVRegister set(Tuple(v, time)), to fill with symbolic variables.
 
-DEFAULT_TIME = VersionVector                # "Time" to be used by the tables and MVRegister in the before function
+DEFAULT_TIME = VersionVector             
+# "Time" to be used by the tables and MVRegister in the before function
 
+#############################################################
+############   STEP 2 ->>  CHOOSE TABLES POLICIES    ########
+''' in "ConcreteTables" folder we have the documents for each table (Art, Alb, etc.)
+        - each document includes the elemPK, element, elemTable and elem_FK_system if there is any.
+    So to change the policy of some class, from "UW" to "DW" or vice-versa: 
+        - do Ctrl+F "DW" in de document, and "replace all" to "DW"
+          and the code will be already good to run, with the correct imports and types'''
+
+# TODO: IMPORTANT!!!
+    # UW Tables need to be confirmed correctness
+    # FK_System for now is just implementing DW policy, 
+    #   -> need to divide in FK_System_UW and FK_System_DW to have the diffrente specific implementations
+    
 
 
 #####################################################################
-#############  STEP 1 ->>       CHOOSE PROOF TO RUN        ##########
+#############  STEP 3 ->>       CHOOSE PROOF TO RUN        ##########
 '''Choose: a) The CvRDT to prove;   b) The type of proof to run.'''
 
-CvRDT_TO_PROVE = 32
+CvRDT_TO_PROVE = 83
 CvRDT_options = { 
-            0: TestClass,       # TODO: delete when not needed anymore
+        # Class for testing simple codes... 
+            0: Test_MVReg, # TODO: this is a class just for simple testing of some syntax... might not run at any moment 
         # Time:
-            1: LamportClock, # THIS IS NOT A CvRDT - It always grows in each merge.)
-            2: VersionVector,  3: RealTime,     # TESTS OK
+            1: LamportClock, # --> THIS IS NOT A CvRDT - It always grows in each merge.)
+            2: VersionVector,       # TESTS OK 
+            3: RealTime,            # TESTS OK BUT -> TODO: Flags_UW does not merge idempotent with real time, need to check what's wrong
         # Counters:
             11: GCounter,                       # TESTS OK
         # Registers:
             21: LWWRegister,                    # TESTS OK
-            22: MVRegister,     # TODO
+            22: MVRegister,     # TODO - with Z3 it's hard to use data structures inside other data structures like set(Tuple(v, time))
+                                #       - need to be implemented, maybe creating a simple Tuple class so then we can go down that level to execute the correct comparisons using Z3 If, which should have primitives as return types If (condition, primitiveA, primitiveB) 
         # Tables:
-            31: Flags_DW, 32: Flags_UW,            # TESTS OK
-            41: Country, 42: CountriesTable,    # TESTS OK
-            51: Genre, 52: GenreTable,          # TESTS OK
-            61: Art, 62: ArtsTable,             # TESTS OK
-            71: Song, 72: SongsTable,           # TESTS OK
-            81: Alb, 82: AlbsTable, 83: Alb_FK_System # TESTS OK
+            31: Flags_DW,       # TESTS OK
+            32: Flags_UW,       # TESTS OK  BUT TODO: with RealTime clock it's not merge idempotent, need to check what's wrong
+            41: Country, 42: CountriesTable,    # TESTS OK -> currently DW policy
+            51: Genre, 52: GenreTable,          # TESTS OK -> currently UW policy
+            61: Art, 62: ArtsTable, 63: Art_FK_System,  # TESTS OK  -> currently UW
+                                                # TODO -> it is running with UW Table, but the FK_System itself still DW. need to implement UW
+            71: Song, 72: SongsTable,           # TESTS OK -> currently DW policy
+            81: Alb, 82: AlbsTable, 83: Alb_FK_System # TESTS OK -> currently DW policy
+
 }
 
 PROOF_TO_RUN = 1
@@ -79,7 +101,7 @@ proofs_options = {
 }
 
 #############################################################
-############   STEP 1 ->>  RUN THE SCRIPT        ############
+############   STEP 4 ->>  RUN THE SCRIPT        ############
 #############################################################
 
 
@@ -91,6 +113,9 @@ proofs_options = {
 #################       HELPER METHOD      ##################
 
 def getArgsForProof():
+    ''' To run each CvRDT through the z3 proofs we need to prepare those objects 
+        with different arguments and symbolic variables.So for us to ask the class to prepare those, 
+        we need to pass different args for its method getArgs().'''
     if CvRDT_to_prove == Flags_DW:
         return ["",VECTOR_SIZE_FOR_SYMBOLIC_VARS]
     if CvRDT_to_prove == Flags_UW:
@@ -104,6 +129,7 @@ def getArgsForProof():
 
 
 def print_proof(proof_name, solver):
+    # TODO: implement the automatic negation of the proof for as to run again and then show the counter example
     res = solver.check()
     print(f"{CvRDT_to_prove.__name__}: {proof_name}\t- holds ?", (res == sat))
     # if res == sat:
@@ -116,6 +142,8 @@ def print_proof(proof_name, solver):
 
 
 def check_all_z3_variables_have_different_names(vars_for_3_instances: List[str]):
+    ''' All the z3 symbolic variables for z3 must have different names for a correct proof.
+        So we check it here.'''
     if len(set(vars_for_3_instances)) == len(vars_for_3_instances):
         print("\nCorrect symbolic variable names (all variables have different names for Z3 proofs)")
     else:
@@ -129,9 +157,10 @@ def check_all_z3_variables_have_different_names(vars_for_3_instances: List[str])
         print("Duplicates:\n", duplicates)
         exit()
  
+
+
 #############################################################
 ###################          MAIN        ####################
-
 
 if __name__ == "__main__":
 
@@ -189,20 +218,19 @@ if __name__ == "__main__":
     
     # Now we'll run the Ref_Integrity_Proofs, but only if the CvRDT_to_prove is a FK_System:
     
-    # TODO: generalizar estas provas para qualquer FK_System
+    # TODO: check when UW and DW FK_Systems are done if we need to adapt this code
     
-    if CvRDT_to_prove == Alb_FK_System:
+    if issubclass(CvRDT_to_prove, FK_System):
         print("\nStarting Ref_Integrity proofs for ", CvRDT_to_prove.__name__)
 
         proofs = Proofs_Ref_Integrity
-        FK1_args, FK2_args, albPK_args, vars_for_2_inst_of_FK_Syst_and_1_inst_of_its_PKs = CvRDT_to_prove.get_RefIntProof_Args("",TABLE_SIZE_FOR_SYMBOLIC_VARS, DEFAULT_TIME)
+        FK1_args, FK2_args, elemPK_args, elem_pk_class, vars_for_2_inst_of_FK_Syst_and_1_inst_of_its_PKs = CvRDT_to_prove.get_RefIntProof_Args("",TABLE_SIZE_FOR_SYMBOLIC_VARS, DEFAULT_TIME)
 
         check_all_z3_variables_have_different_names(vars_for_2_inst_of_FK_Syst_and_1_inst_of_its_PKs)
 
         fk_syst_instance1 = CvRDT_to_prove(*FK1_args)
         fk_syst_instance2 = CvRDT_to_prove(*FK2_args)
-        elem_pk_instance = AlbPK(*albPK_args) if CvRDT_to_prove == Alb_FK_System else None
-
+        elem_pk_instance = elem_pk_class(*elemPK_args)
         if proof_to_run in ["generic_referential_integrity", "ALL"]:
             solver.add(proofs.generic_referential_integrity(
                     vars_for_2_inst_of_FK_Syst_and_1_inst_of_its_PKs,

@@ -9,11 +9,11 @@ from CvRDTs.Registers.LWWRegister import LWWRegister
 from CvRDTs.Tables.PK import PK
 from CvRDTs.Tables.Element import Element
 from CvRDTs.Tables.Flags_DW import Flags_DW
-from CvRDTs.Tables.DWTable import DWTable
+from CvRDTs.Tables.Table_DW import Table_DW
 from CvRDTs.Tables.FK_System import FK_System
 
-from ConcreteTables.Art import ArtPK, ArtsTable
-from ConcreteTables.Song import SongPK
+from ConcreteTables.Art import Art_FK_System, ArtPK, ArtsTable
+from ConcreteTables.Song import SongPK, SongsTable
 
 
 
@@ -79,7 +79,7 @@ class Alb(Element, CvRDT['Alb']):
 ######################  ALB  TABLE  ##########################
 
 
-class AlbsTable(DWTable):
+class AlbsTable(Table_DW):
     '''AlbsTable extends DWTable.'''
 
     def __init__(self, elements: Dict[AlbPK, Tuple[Flags_DW, Alb]], before: Callable[[Time, Time], bool]):
@@ -91,7 +91,7 @@ class AlbsTable(DWTable):
     @staticmethod
     def getArgs(extra_id: str, table_size: int, clock: Time):
         '''return symbolic all different variables for 3 different instances of AlbsTable, and also list of those variables to be used by Z3.'''
-        return DWTable.getArgs(extra_id + "albsTab_", Alb, table_size, clock)
+        return Table_DW.getArgs(extra_id + "albsTab_", Alb, table_size, clock)
 
 
 
@@ -102,17 +102,18 @@ class AlbsTable(DWTable):
 class Alb_FK_System(FK_System):
     '''A class to represent an Alb_FK_System. It has 2 attributes: albs_table and arts_table.
         Extends CvRDT, and CvRDT accepts a generic type T, which we here bind to Alb_FK_System.'''
-         
-    def __init__(self, albs_table: AlbsTable, arts_table: ArtsTable):
-        super().__init__(albs_table, [arts_table], [])
-        self.albs_table = albs_table
-        self.arts_table = arts_table
-
+    
+    def __init__(self, albs_table: AlbsTable, songA_Tab: 'SongsTable', songB_Tab: 'SongsTable', songC_Tab: 'SongsTable', arts_fk_syst: Art_FK_System):
+        '''Important: the order of the args in the constructor should be the same as the order of the args
+            - here passing to super as "main_table", [fk_tables], [fk_systems]
+            - in the getArgs method to create this instances.'''
+        super().__init__(albs_table, [songA_Tab, songB_Tab, songC_Tab], [arts_fk_syst])
    
+
     @staticmethod
     def getArgs(extra_id: str, table_size: int, clock: Time):
         '''return symbolic all different variables for 3 different instances of Alb_FK_System, and also list of those variables to be used by Z3.'''
-        return FK_System.getArgs("albFKsyst_" + extra_id, {"albTab_": AlbsTable, "artTab_": ArtsTable}, table_size, clock)
+        return FK_System.getArgs("albFKsyst_" + extra_id, {"albTab_": AlbsTable, "songATab_":SongsTable, "songBTab_":SongsTable, "songCTab_":SongsTable, "artTab_": ArtsTable}, table_size, clock)
       
 
     @staticmethod

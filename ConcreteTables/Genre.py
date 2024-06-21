@@ -8,8 +8,8 @@ from CvRDTs.Registers.LWWRegister import LWWRegister
 
 from CvRDTs.Tables.PK import PK
 from CvRDTs.Tables.Element import Element
-from CvRDTs.Tables.Flags_DW import Flags_DW
-from CvRDTs.Tables.DWTable import DWTable
+from CvRDTs.Tables.Flags_UW import Flags_UW
+from CvRDTs.Tables.Table_UW import Table_UW
 
 
 
@@ -64,10 +64,10 @@ class Genre(Element, CvRDT['Genre']):
 ######################  GENRE  TABLE  ##########################
 
 
-class GenreTable(DWTable):
-    '''SongsTable extends DWTable.'''
+class GenreTable(Table_UW):
+    '''SongsTable extends UWTable.'''
 
-    def __init__(self, elements: Dict[GenrePK, Tuple[Flags_DW, Genre]], before: Callable[[Time, Time], bool]):
+    def __init__(self, elements: Dict[GenrePK, Tuple[Flags_UW, Genre]], before: Callable[[Time, Time], bool]):
         super().__init__(elements, before)
 
     def getNumFKs(self) -> int:
@@ -76,7 +76,7 @@ class GenreTable(DWTable):
     @staticmethod
     def getArgs(extra_id: str, table_size: int, clock: Time):
         '''return symbolic all different variables for 3 different instances of SongsTable, and also list of those variables to be used by Z3.'''
-        return DWTable.getArgs(extra_id + "genresTab_", Genre, table_size, clock)
+        return Table_UW.getArgs(extra_id + "genresTab_", Genre, table_size, clock)
 
 
 

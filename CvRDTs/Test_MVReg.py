@@ -5,7 +5,10 @@ from CvRDTs.CvRDT import CvRDT
 from CvRDTs.Time.RealTime import RealTime
 from CvRDTs.Time.Time import Time
 
-class TestClass (CvRDT['TestClass']):
+class Test_MVReg (CvRDT['TestClass']):
+    ''' This is a temporary class to build the MVRegister step by step.'''
+
+
     def __init__(self, times: Set[Tuple[int,Time]] = None):
         self.times = times or set()
 
@@ -18,21 +21,21 @@ class TestClass (CvRDT['TestClass']):
 
         return True
 
-    def compatible(self, that: 'TestClass') -> BoolRef:
+    def compatible(self, that: 'Test_MVReg') -> BoolRef:
         return True
 
 
-    def compare(self, that: 'TestClass') -> BoolRef:
+    def compare(self, that: 'Test_MVReg') -> BoolRef:
         # print("compare")
         # print(self.times.before(that.times))
         # exit()
         return self.times <= that.times
     
-    def __eq__(self, that: 'TestClass') -> bool:
+    def __eq__(self, that: 'Test_MVReg') -> bool:
         return self.times == that.times
 
 
-    def merge(self, that: 'TestClass') -> 'TestClass':
+    def merge(self, that: 'Test_MVReg') -> 'Test_MVReg':
         print("merge")
         
         merged_set = set()
@@ -41,7 +44,7 @@ class TestClass (CvRDT['TestClass']):
                 merged_set.add(If(tup1[1].before(tup2[1]), 1, False))
 
         exit()
-        return TestClass(max(self.times, that.times))
+        return Test_MVReg(max(self.times, that.times))
     
     @staticmethod
     def getArgs(extra_id: str):

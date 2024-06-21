@@ -66,8 +66,9 @@ class FK_System(CvRDT['FK_System']):
 
     def merge(self, other: 'FK_System') -> 'FK_System':
         return self.__class__(
-            self.albs_table.merge(other.albs_table),
-            self.arts_table.merge(other.arts_table)
+            self.main_table.merge(other.main_table),
+            *[ref_table.merge(other_ref_table) for ref_table, other_ref_table in zip(self.ref_tables, other.ref_tables)],
+            *[ref_FK_System.merge(other_ref_FK_System) for ref_FK_System, other_ref_FK_System in zip(self.ref_FK_Systems, other.ref_FK_Systems)]
         )
 
     
@@ -161,7 +162,7 @@ class FK_System(CvRDT['FK_System']):
         # List of all symbolic variables for 2 instances of Alb_FK_System and 1 instance of AlbPK
         z3_vars_for_2_FK_instances_and_1_PK_instance = FK_vars_for_instance1 + FK_vars_for_instance2 + elemPK_vars_for_instance1
 
-        return FK1_args, FK2_args, elemPK1_args, z3_vars_for_2_FK_instances_and_1_PK_instance
+        return FK1_args, FK2_args, elemPK1_args, concrete_elem_PK, z3_vars_for_2_FK_instances_and_1_PK_instance
 
             
     

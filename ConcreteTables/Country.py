@@ -7,7 +7,7 @@ from CvRDTs.Time.Time import Time
 from CvRDTs.Tables.PK import PK
 from CvRDTs.Tables.Element import Element
 from CvRDTs.Tables.Flags_DW import Flags_DW
-from CvRDTs.Tables.DWTable import DWTable
+from CvRDTs.Tables.Table_DW import Table_DW
 from CvRDTs.Registers.LWWRegister import LWWRegister
 
 
@@ -21,7 +21,6 @@ class CountryPK(PK):
 
     def __init__(self, name: Int):
         super().__init__([name])
-        self.name = name
 
     def reachable(self) -> BoolRef:
         '''If PK attributes have some CHECK constraints, they should be implemented here. Otherwise, return True.'''
@@ -61,7 +60,7 @@ class Country(Element, CvRDT['Country']):
 ######################  COUNTRY  TABLE  ##########################
 
 
-class CountriesTable(DWTable):
+class CountriesTable(Table_DW):
     '''ArtsTable extends DWTable.'''
     
     def __init__(self, elements: Dict[CountryPK, Tuple[Flags_DW, Country]], before: Callable[[Time, Time], bool]):
@@ -73,7 +72,7 @@ class CountriesTable(DWTable):
     @staticmethod
     def getArgs(extra_id: str, table_size: int, clock: Time):
         '''return symbolic all different variables for 3 different instances of CountriesTable, and also list of those variables to be used by Z3.'''
-        return DWTable.getArgs("countriesTab_" + extra_id, Country, table_size, clock)
+        return Table_DW.getArgs("countriesTab_" + extra_id, Country, table_size, clock)
     
 
 
